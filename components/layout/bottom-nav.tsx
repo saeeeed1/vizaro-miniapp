@@ -30,7 +30,7 @@ export function BottomNav() {
       style={{
         gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
         height: 56,
-        paddingBottom: "env(safe-area-inset-bottom, 16px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 20px)",
       }}
     >
       {tabs.map((item) => (
