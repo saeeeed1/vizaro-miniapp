@@ -27,7 +27,11 @@ export function BottomNav() {
   return (
     <nav
       className="bottom-nav"
-      style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, height: 56 }}
+      style={{
+        gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
+        height: 56,
+        paddingBottom: "env(safe-area-inset-bottom, 16px)",
+      }}
     >
       {tabs.map((item) => (
         <Link
