@@ -5,10 +5,6 @@ import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 import { fail, withApi } from "@/lib/api-response";
 import { getEmployeeDashboardData } from "@/lib/repository";
 
-/**
- * x-telegram-init-data headerdan real Telegram user.id ni parse qiladi.
- * HMAC tekshiruvsiz — faqat ID olish uchun.
- */
 function extractTelegramUserId(headers: Headers): string | null {
   const initData = headers.get(TELEGRAM_INIT_DATA_HEADER);
   if (!initData) return null;
@@ -29,8 +25,6 @@ export async function GET(request: Request) {
   if (botApiUrl) {
     try {
       const session = resolveSession(request.headers);
-
-      // Birinchi navbatda initData dan real Telegram ID ni olamiz
       const realTelegramId = extractTelegramUserId(request.headers);
       const telegramId = realTelegramId ?? session.user.telegramId;
 
@@ -43,16 +37,24 @@ export async function GET(request: Request) {
       );
 
       if (res.ok) {
-        const data = await res.json() as unknown;
-        return NextResponse.json(data);
+        return NextResponse.json(await res.json() as unknown);
       }
 
       if (res.status === 404) {
-        // Real Telegram foydalanuvchi — demo ga tushmasin, bo'sh holat ko'rsatilsin
         if (realTelegramId) {
-          return fail("Bu oy uchun davomat yozuvlari topilmadi.", 404);
+          // Foydalanuvchi mavjud emas yoki yozuv yo'q — demo ga tushmaslik uchun
+          // bo'sh (nol) dashboard qaytaramiz
+          return NextResponse.json({
+            name: "",
+            month,
+            workdays_total: 0, workdays_passed: 0, workdays_remaining: 0,
+            on_time: 0, late_days: 0, absent_days: 0, late_seconds_total: 0,
+            salary_base: 500, salary_earned: 0, salary_deducted: 0, salary_projected: 0,
+            day_rate: 0, second_rate: 0,
+            daily_records: [], salary_chart: [], hours_chart: [],
+          });
         }
-        // Demo yoki brauzer rejimi — demo data ga o'tamiz
+        // Demo/brauzer rejimi — demo data ga o'tamiz
       } else {
         const body = await res.json().catch(() => ({})) as { error?: string };
         return fail(body.error ?? "Bot server xatosi", res.status);
@@ -62,6 +64,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Fallback: in-memory demo data (brauzer/test uchun)
   return withApi(() => getEmployeeDashboardData(request.headers));
 }
