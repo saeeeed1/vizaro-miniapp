@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 
 import { APP_NAME } from "@/lib/config";
 import { useMiniApp } from "@/components/providers/miniapp-provider";
@@ -18,9 +17,7 @@ export function AppShell({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
-  const { session, loading, error, switchDemoUser } = useMiniApp();
-
-  const availableUsers = useMemo(() => session?.availableUsers ?? [], [session]);
+  const { session, loading, error } = useMiniApp();
 
   return (
     <div className="app-shell">
@@ -32,24 +29,6 @@ export function AppShell({
         </div>
         <div className="header-side">
           {actions}
-          {session?.availableUsers?.length ? (
-            <label className="compact-field">
-              <span>Demo user</span>
-              <select
-                className="input"
-                value={session.user.id}
-                onChange={(event) => {
-                  void switchDemoUser(event.target.value);
-                }}
-              >
-                {availableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.fullName} ({user.role})
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
         </div>
       </header>
 
