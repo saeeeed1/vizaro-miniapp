@@ -282,6 +282,40 @@ export interface DataStore {
   salaryConfig: SalaryConfig;
 }
 
+export interface TodayEmployee {
+  user_id: number;
+  full_name: string;
+  username: string | null;
+  status: "present" | "working" | "late" | "late_done" | "absent" | "not_marked";
+  checkin_at: string | null;
+  checkout_at: string | null;
+  worked: string;
+  late_minutes: number;
+}
+
+export interface TodaySummary {
+  total: number;
+  present: number;
+  late: number;
+  absent: number;
+  not_marked: number;
+}
+
+export interface WeekChartPoint {
+  day: string;
+  date: string;
+  on_time: number;
+  late: number;
+  absent: number;
+}
+
+export interface TodayDashboardData {
+  date: string;
+  summary: TodaySummary;
+  employees: TodayEmployee[];
+  week_chart: WeekChartPoint[];
+}
+
 export interface BotUserInfo {
   user_id: number;
   full_name: string;
