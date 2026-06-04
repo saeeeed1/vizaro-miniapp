@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const botApiUrl = process.env.BOT_API_URL;
 
   try {
-    const session = resolveSession(request.headers);
+    const session = await resolveSession(request.headers);
     const telegramId = extractTelegramUserId(request.headers) ?? session.user.telegramId;
 
     if (botApiUrl) {

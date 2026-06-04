@@ -559,18 +559,18 @@ function attachEmployee(store: DataStore, record: AttendanceRecord): AttendanceR
   };
 }
 
-export function getSession(headers: Headers): SessionPayload {
+export async function getSession(headers: Headers): Promise<SessionPayload> {
   return resolveSession(headers);
 }
 
-export function getDashboard(headers: Headers): DashboardResponse {
-  const session = resolveSession(headers);
+export async function getDashboard(headers: Headers): Promise<DashboardResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   return session.user.role === "ADMIN" ? buildAdminDashboard(store, session) : buildEmployeeDashboard(store, session);
 }
 
-export function getAttendancePage(headers: Headers, filters: ReportFilters = {}): AttendancePageResponse {
-  const session = resolveSession(headers);
+export async function getAttendancePage(headers: Headers, filters: ReportFilters = {}): Promise<AttendancePageResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const employee = getEmployeeForUser(store, session.user);
   const period = filters.period ?? "month";
@@ -612,8 +612,8 @@ export function getAttendancePage(headers: Headers, filters: ReportFilters = {})
   };
 }
 
-export function checkIn(headers: Headers, timestamp?: string): AttendancePageResponse {
-  const session = resolveSession(headers);
+export async function checkIn(headers: Headers, timestamp?: string): Promise<AttendancePageResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const employee = getEmployeeForUser(store, session.user);
 
@@ -658,8 +658,8 @@ export function checkIn(headers: Headers, timestamp?: string): AttendancePageRes
   return getAttendancePage(headers, { period: "today" });
 }
 
-export function checkOut(headers: Headers, timestamp?: string): AttendancePageResponse {
-  const session = resolveSession(headers);
+export async function checkOut(headers: Headers, timestamp?: string): Promise<AttendancePageResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const employee = getEmployeeForUser(store, session.user);
 
@@ -707,7 +707,7 @@ export function checkOut(headers: Headers, timestamp?: string): AttendancePageRe
   return getAttendancePage(headers, { period: "today" });
 }
 
-export function manualCorrection(
+export async function manualCorrection(
   headers: Headers,
   payload: {
     employeeId?: string;
@@ -716,8 +716,8 @@ export function manualCorrection(
     checkOutTime?: string | null;
     notes?: string | null;
   }
-): EmployeeDetailResponse {
-  const session = resolveSession(headers);
+): Promise<EmployeeDetailResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   assertAdmin(session);
 
@@ -752,8 +752,8 @@ export function manualCorrection(
   return getEmployeeDetail(headers, employee.id);
 }
 
-export function getEmployees(headers: Headers): EmployeeListItem[] {
-  const session = resolveSession(headers);
+export async function getEmployees(headers: Headers): Promise<EmployeeListItem[]> {
+  const session = await resolveSession(headers);
   const store = getStore();
   materializeCurrentMonth(store);
 
@@ -772,8 +772,8 @@ export function getEmployees(headers: Headers): EmployeeListItem[] {
   });
 }
 
-export function createEmployee(headers: Headers, payload: EmployeeUpsertPayload): EmployeeListItem[] {
-  const session = resolveSession(headers);
+export async function createEmployee(headers: Headers, payload: EmployeeUpsertPayload): Promise<EmployeeListItem[]> {
+  const session = await resolveSession(headers);
   const store = getStore();
   assertAdmin(session);
 
@@ -819,8 +819,8 @@ export function createEmployee(headers: Headers, payload: EmployeeUpsertPayload)
   return getEmployees(headers);
 }
 
-export function updateEmployee(headers: Headers, employeeId: string, payload: Partial<EmployeeUpsertPayload>): EmployeeDetailResponse {
-  const session = resolveSession(headers);
+export async function updateEmployee(headers: Headers, employeeId: string, payload: Partial<EmployeeUpsertPayload>): Promise<EmployeeDetailResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   assertAdmin(session);
 
@@ -866,8 +866,8 @@ export function updateEmployee(headers: Headers, employeeId: string, payload: Pa
   return getEmployeeDetail(headers, employee.id);
 }
 
-export function deleteEmployee(headers: Headers, employeeId: string): EmployeeListItem[] {
-  const session = resolveSession(headers);
+export async function deleteEmployee(headers: Headers, employeeId: string): Promise<EmployeeListItem[]> {
+  const session = await resolveSession(headers);
   const store = getStore();
   assertAdmin(session);
 
@@ -890,8 +890,8 @@ export function deleteEmployee(headers: Headers, employeeId: string): EmployeeLi
   return getEmployees(headers);
 }
 
-export function getEmployeeDetail(headers: Headers, employeeId: string): EmployeeDetailResponse {
-  const session = resolveSession(headers);
+export async function getEmployeeDetail(headers: Headers, employeeId: string): Promise<EmployeeDetailResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const employee = getEmployeeOrThrow(store, employeeId);
 
@@ -916,8 +916,8 @@ export function getEmployeeDetail(headers: Headers, employeeId: string): Employe
   };
 }
 
-export function getReports(headers: Headers, filters: ReportFilters = {}): ReportsResponse {
-  const session = resolveSession(headers);
+export async function getReports(headers: Headers, filters: ReportFilters = {}): Promise<ReportsResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const period = filters.period ?? "month";
   const range = getPeriodRange(period, store.salaryConfig.timezone, filters.from, filters.to);
@@ -952,8 +952,8 @@ export function getReports(headers: Headers, filters: ReportFilters = {}): Repor
   };
 }
 
-export function exportReportsCsv(headers: Headers, filters: ReportFilters = {}): string {
-  const report = getReports(headers, filters);
+export async function exportReportsCsv(headers: Headers, filters: ReportFilters = {}): Promise<string> {
+  const report = await getReports(headers, filters);
   const headerRow = [
     "Date",
     "Employee",
@@ -985,8 +985,8 @@ export function exportReportsCsv(headers: Headers, filters: ReportFilters = {}):
   return asCsv([headerRow, ...rows]);
 }
 
-export function getSalaryPage(headers: Headers): SalaryPageResponse {
-  const session = resolveSession(headers);
+export async function getSalaryPage(headers: Headers): Promise<SalaryPageResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   materializeCurrentMonth(store);
 
@@ -1014,8 +1014,8 @@ export function getSalaryPage(headers: Headers): SalaryPageResponse {
   };
 }
 
-export function getSettings(headers: Headers): SettingsResponse {
-  const session = resolveSession(headers);
+export async function getSettings(headers: Headers): Promise<SettingsResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   const note =
     session.user.role === "ADMIN"
@@ -1028,8 +1028,8 @@ export function getSettings(headers: Headers): SettingsResponse {
   };
 }
 
-export function updateSettings(headers: Headers, payload: SettingsUpdatePayload): SettingsResponse {
-  const session = resolveSession(headers);
+export async function updateSettings(headers: Headers, payload: SettingsUpdatePayload): Promise<SettingsResponse> {
+  const session = await resolveSession(headers);
   const store = getStore();
   assertAdmin(session);
 
@@ -1054,8 +1054,8 @@ export function updateSettings(headers: Headers, payload: SettingsUpdatePayload)
   return getSettings(headers);
 }
 
-export function getEmployeeDashboardData(headers: Headers): EmployeeDashboardData {
-  const session = resolveSession(headers);
+export async function getEmployeeDashboardData(headers: Headers): Promise<EmployeeDashboardData> {
+  const session = await resolveSession(headers);
   const store = getStore();
   materializeCurrentMonth(store);
 

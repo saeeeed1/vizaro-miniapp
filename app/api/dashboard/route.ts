@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
   if (botApiUrl) {
     try {
-      const session = resolveSession(request.headers);
+      const session = await resolveSession(request.headers);
       const realTelegramId = extractTelegramUserId(request.headers);
       const telegramId = realTelegramId ?? session.user.telegramId;
 

@@ -5,7 +5,7 @@ import { fail } from "@/lib/api-response";
 export async function GET(request: Request) {
   const botApiUrl = process.env.BOT_API_URL;
   try {
-    resolveSession(request.headers);
+    await resolveSession(request.headers);
     if (botApiUrl) {
       const res = await fetch(
         `${botApiUrl.replace(/\/$/, "")}/api/today`,

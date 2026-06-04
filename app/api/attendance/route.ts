@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   if (botApiUrl) {
     try {
-      const session = resolveSession(request.headers);
+      const session = await resolveSession(request.headers);
       const realId = extractTelegramUserId(request.headers);
       const period = searchParams.get("period") ?? "month";
       const from = searchParams.get("from") ?? "";

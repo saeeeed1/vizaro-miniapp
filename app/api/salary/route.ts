@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   if (botApiUrl) {
     try {
-      const session = resolveSession(request.headers);
+      const session = await resolveSession(request.headers);
       const realId = extractTelegramUserId(request.headers);
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
