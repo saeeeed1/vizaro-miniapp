@@ -52,7 +52,7 @@ body {
 .app-shell {
   width: min(1180px, 100%);
   min-height: 100vh;
-  padding: 20px 16px calc(56px + env(safe-area-inset-bottom, 16px) + 20px);
+  padding: 20px 16px calc(56px + max(env(safe-area-inset-bottom), 20px) + 8px);
 }
 
 .app-header {

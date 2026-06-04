@@ -29,8 +29,10 @@ export function BottomNav() {
       className="bottom-nav"
       style={{
         gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
-        height: 56,
+        height: `calc(56px + max(env(safe-area-inset-bottom), 20px))`,
         paddingBottom: "max(env(safe-area-inset-bottom), 20px)",
+        alignItems: "flex-start",
+        paddingTop: "8px",
       }}
     >
       {tabs.map((item) => (
