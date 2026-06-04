@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  PENDING
+  ON_TIME
+  LATE
+  EARLY_LEAVE
+  FULL_DAY
+  ABSENT
+  OFF_DAY
+  SUNDAY
+}
+
+enum PenaltyType {
+  LATE
+  EARLY_LEAVE
+  ABSENT
+  MANUAL
+}
+
+enum AuditAction {
+  EMPLOYEE_CREATED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_DELETED
+  ATTENDANCE_CREATED
+  ATTENDANCE_UPDATED
+  ATTENDANCE_CORRECTED
+  CHECK_IN
+  CHECK_OUT
+  SETTINGS_UPDATED
+}
+
+model User {
+  id         String     @id @default(cuid())
+  telegramId BigInt     @unique
+  fullName   String
+  username   String?
+  role       UserRole
+  createdAt  DateTime   @default(now())
+  employee   Employee?
+  auditLogs  AuditLog[] @relation("ActorAuditLogs")
+}
+
+model Employee {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  position          String
+  monthlySalaryUsd  Decimal            @db.Decimal(10, 2)
+  workStartTime     String
+  workEndTime       String
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceRecords AttendanceRecord[]
+  penalties         Penalty[]
+  auditLogs         AuditLog[]
+}
+
+model AttendanceRecord {
+  id                String           @id @default(cuid())
+  employeeId        String
+  date              DateTime
+  checkInTime       DateTime?
+  checkOutTime      DateTime?
+  status            AttendanceStatus @default(PENDING)
+  lateMinutes       Int              @default(0)
+  earlyLeaveMinutes Int              @default(0)
+  workedMinutes     Int              @default(0)
+  expectedMinutes   Int              @default(480)
+  dailyEarned       Decimal          @default(0) @db.Decimal(10, 2)
+  dailyPenalty      Decimal          @default(0) @db.Decimal(10, 2)
+  netDailyAmount    Decimal          @default(0) @db.Decimal(10, 2)
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  penalties         Penalty[]
+  auditLogs         AuditLog[]
+
+  @@unique([employeeId, date])
+  @@index([date, status])
+}
+
+model Penalty {
+  id                 String           @id @default(cuid())
+  employeeId         String
+  attendanceRecordId String?
+  type               PenaltyType
+  minutes            Int              @default(0)
+  amount             Decimal          @db.Decimal(10, 2)
+  reason             String?
+  createdAt          DateTime         @default(now())
+  employee           Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendanceRecord   AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+}
+
+model SalaryConfig {
+  id                     String   @id @default(cuid())
+  defaultMonthlySalaryUsd Decimal @db.Decimal(10, 2)
+  workStartTime          String
+  workEndTime            String
+  weeklyOffDay           Int
+  timezone               String   @default("Asia/Tashkent")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  title     String
+  isPaid    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id                 String            @id @default(cuid())
+  actorUserId        String?
+  employeeId         String?
+  attendanceRecordId String?
+  action             AuditAction
+  payload            Json?
+  createdAt          DateTime          @default(now())
+  actorUser          User?             @relation("ActorAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+  employee           Employee?         @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  attendanceRecord   AttendanceRecord? @relation(fields: [attendanceRecordId], references: [id], onDelete: SetNull)
+}
