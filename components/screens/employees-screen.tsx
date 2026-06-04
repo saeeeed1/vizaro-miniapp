@@ -24,10 +24,25 @@ const INITIAL_FORM = {
 };
 
 export function EmployeesScreen() {
-  const { request, session } = useMiniApp();
+  const { request, session, isAdmin } = useMiniApp();
   const [refreshKey, setRefreshKey] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editSalary, setEditSalary] = useState("");
   const query = useApiData<EmployeeListItem[]>(() => request("/api/employees"), [request, session?.user.id, refreshKey]);
+
+  const saveSalary = async (employeeId: string) => {
+    const val = parseFloat(editSalary);
+    if (!val || val <= 0) return;
+    // employeeId = "emp_{telegram_user_id}"
+    const userId = employeeId.replace("emp_", "");
+    await request(`/api/employees/${userId}/salary`, {
+      method: "PATCH",
+      body: { monthly_salary: val },
+    });
+    setEditingId(null);
+    setRefreshKey(k => k + 1);
+  };
 
   const createNewEmployee = async () => {
     const result = await request<EmployeeListItem[]>("/api/employees", {
@@ -86,15 +101,62 @@ export function EmployeesScreen() {
               <div className="row-between">
                 <div>
                   <Link href={`/employees/${row.employee.id}`}>
-                    <h3>{row.employee.user.fullName}</h3>
+                    <h3 style={{ fontSize: 15, margin: 0 }}>{row.employee.user.fullName}</h3>
                   </Link>
-                  <p className="meta-text">
-                    {row.employee.position} / @{row.employee.user.username ?? "username yo'q"}
+                  <p className="meta-text" style={{ margin: "2px 0 0", fontSize: 12 }}>
+                    @{row.employee.user.username ?? "—"}
                   </p>
                 </div>
                 <StatusPill status={row.statusToday} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 10 }}>
+
+              {/* Oylik satri */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0 4px" }}>
+                <span className="meta-text" style={{ fontSize: 12 }}>
+                  💰 Oylik: <b>${row.employee.monthlySalaryUsd.toFixed(0)}</b>
+                </span>
+                {isAdmin && editingId !== row.employee.id && (
+                  <button
+                    className="button ghost"
+                    style={{ padding: "3px 8px", fontSize: 11, minHeight: "unset" }}
+                    onClick={() => { setEditingId(row.employee.id); setEditSalary(String(row.employee.monthlySalaryUsd)); }}
+                  >
+                    ✏️
+                  </button>
+                )}
+              </div>
+
+              {/* Inline tahrirlash */}
+              {isAdmin && editingId === row.employee.id && (
+                <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                  <input
+                    className="input"
+                    type="number"
+                    style={{ maxWidth: 120, minHeight: 36, fontSize: 13, padding: "4px 10px" }}
+                    value={editSalary}
+                    onChange={e => setEditSalary(e.target.value)}
+                    placeholder="Oylik ($)"
+                    autoFocus
+                  />
+                  <button
+                    className="button primary"
+                    style={{ padding: "4px 14px", fontSize: 12, minHeight: 36 }}
+                    onClick={() => void saveSalary(row.employee.id)}
+                  >
+                    Saqlash
+                  </button>
+                  <button
+                    className="button secondary"
+                    style={{ padding: "4px 10px", fontSize: 12, minHeight: 36 }}
+                    onClick={() => setEditingId(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Statistika */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                 <div className="card" style={{ padding: "8px 10px", textAlign: "center" }}>
                   <div className="meta-text" style={{ fontSize: 11 }}>Keldi</div>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{row.arrivedDays}</div>
