@@ -1192,8 +1192,7 @@ function buildNewEmployeeDashboard(store: DataStore, employee: Employee): Employ
       if (!rec || rec.status === "ABSENT") {
         // absent: no addition
       } else {
-        const lateSec = rec.lateMinutes * 60;
-        cumEarned += Math.max(0, dayRate - lateSec * secondRate);
+        cumEarned += rec.workedMinutes * 60 * secondRate;
       }
       salary_chart.push({
         day: dayNum,

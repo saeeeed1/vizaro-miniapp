@@ -2,7 +2,7 @@ import type { SalaryConfig } from "@/lib/types";
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "Davomat Mini App";
 export const APP_TIMEZONE = process.env.NEXT_PUBLIC_APP_TIMEZONE ?? "Asia/Tashkent";
-export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
+export const IS_DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const DEMO_USER_HEADER = "x-demo-user-id";
 export const TELEGRAM_INIT_DATA_HEADER = "x-telegram-init-data";
 
