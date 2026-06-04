@@ -67,8 +67,22 @@ export function resolveSession(headers: Headers): SessionPayload {
           config: store.salaryConfig
         };
       }
-      // Real foydalanuvchi store da yo'q: demo mode da fallback, aks holda xato
+      // Store da yo'q: BOT_API_URL rejimida synthetic session (bot API real data qaytaradi)
       if (!IS_DEMO_MODE) {
+        if (process.env.BOT_API_URL) {
+          return {
+            user: {
+              id: `tg_${telegramUser.id}`,
+              telegramId: telegramUser.id,
+              fullName: telegramUser.fullName,
+              username: telegramUser.username,
+              role: "EMPLOYEE" as const,
+              employeeId: null,
+              isDemo: false,
+            },
+            config: store.salaryConfig,
+          };
+        }
         throw new AuthError("Bu Telegram foydalanuvchisi tizimga biriktirilmagan.", 403);
       }
     } else if (!IS_DEMO_MODE) {
