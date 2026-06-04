@@ -57,19 +57,26 @@ export function resolveSession(headers: Headers): SessionPayload {
 
   if (initData) {
     const telegramUser = validateTelegramInitData(initData, botToken);
-    if (!telegramUser) {
+
+    if (telegramUser) {
+      // Validation muvaffaqiyatli — store dan real foydalanuvchini topamiz
+      const matched = store.users.find((user) => user.telegramId === telegramUser.id);
+      if (matched) {
+        return {
+          user: toSessionUser(matched.id),
+          config: store.salaryConfig
+        };
+      }
+      // Real foydalanuvchi store da yo'q: demo mode da fallback, aks holda xato
+      if (!IS_DEMO_MODE) {
+        throw new AuthError("Bu Telegram foydalanuvchisi tizimga biriktirilmagan.", 403);
+      }
+    } else if (!IS_DEMO_MODE) {
+      // Validation muvaffaqiyatsiz va demo mode o'chiq — xato
       throw new AuthError("Telegram init data tasdiqlanmadi.");
     }
-
-    const matched = store.users.find((user) => user.telegramId === telegramUser.id);
-    if (!matched) {
-      throw new AuthError("Bu Telegram foydalanuvchisi tizimga biriktirilmagan.", 403);
-    }
-
-    return {
-      user: toSessionUser(matched.id),
-      config: store.salaryConfig
-    };
+    // Demo mode da validation muvaffaqiyatsiz yoki foydalanuvchi topilmadi →
+    // quyidagi demo fallback ga o'tiladi
   }
 
   if (IS_DEMO_MODE) {
