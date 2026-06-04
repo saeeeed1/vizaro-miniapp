@@ -73,21 +73,23 @@ export function EmployeesScreen() {
     >
       {session?.user.role === "ADMIN" ? (
         <Card>
-          <div className="section-heading">
+          <h2 style={{ margin: "0 0 4px" }}>Yangi Xodim Qo'shish</h2>
+          <p className="meta-text" style={{ margin: "0 0 14px" }}>Telegram ID, position va schedule bilan employee yarating.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <input className="input" placeholder="Full name" value={form.fullName} onChange={(e) => setForm((p) => ({ ...p, fullName: e.target.value }))} />
+            <input className="input" placeholder="Username" value={form.username} onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))} />
+            <input className="input" placeholder="Telegram ID" value={form.telegramId} onChange={(e) => setForm((p) => ({ ...p, telegramId: e.target.value }))} />
+            <input className="input" placeholder="Position" value={form.position} onChange={(e) => setForm((p) => ({ ...p, position: e.target.value }))} />
+            <input className="input" type="number" placeholder="Monthly salary ($)" value={form.monthlySalaryUsd} onChange={(e) => setForm((p) => ({ ...p, monthlySalaryUsd: e.target.value }))} />
             <div>
-              <h2>Yangi Xodim Qo'shish</h2>
-              <p>Telegram ID, position va schedule bilan employee yarating.</p>
+              <label className="meta-text" style={{ display: "block", marginBottom: 4, fontSize: 12 }}>Ish boshlanish vaqti</label>
+              <input className="input" type="time" style={{ width: "100%" }} value={form.workStartTime} onChange={(e) => setForm((p) => ({ ...p, workStartTime: e.target.value }))} />
             </div>
-            <Button onClick={() => void createNewEmployee()}>Save Employee</Button>
-          </div>
-          <div className="form-grid">
-            <input className="input" placeholder="Full name" value={form.fullName} onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))} />
-            <input className="input" placeholder="Username" value={form.username} onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))} />
-            <input className="input" placeholder="Telegram ID" value={form.telegramId} onChange={(event) => setForm((prev) => ({ ...prev, telegramId: event.target.value }))} />
-            <input className="input" placeholder="Position" value={form.position} onChange={(event) => setForm((prev) => ({ ...prev, position: event.target.value }))} />
-            <input className="input" type="number" placeholder="Monthly salary" value={form.monthlySalaryUsd} onChange={(event) => setForm((prev) => ({ ...prev, monthlySalaryUsd: event.target.value }))} />
-            <input className="input" type="time" value={form.workStartTime} onChange={(event) => setForm((prev) => ({ ...prev, workStartTime: event.target.value }))} />
-            <input className="input" type="time" value={form.workEndTime} onChange={(event) => setForm((prev) => ({ ...prev, workEndTime: event.target.value }))} />
+            <div>
+              <label className="meta-text" style={{ display: "block", marginBottom: 4, fontSize: 12 }}>Ish tugash vaqti</label>
+              <input className="input" type="time" style={{ width: "100%" }} value={form.workEndTime} onChange={(e) => setForm((p) => ({ ...p, workEndTime: e.target.value }))} />
+            </div>
+            <Button onClick={() => void createNewEmployee()}>💾 Save Employee</Button>
           </div>
         </Card>
       ) : null}
