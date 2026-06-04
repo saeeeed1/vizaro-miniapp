@@ -4,3 +4,8 @@ node_modules
 dist
 coverage
 *.log
+
+# Vercel auth (tokens — push qilinmasin)
+.vercel
+.vercel-global
+Library/
