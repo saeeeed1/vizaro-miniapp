@@ -149,51 +149,48 @@ export function AttendanceTable({
   showEmployee?: boolean;
 }) {
   return (
-    <Card>
-      <div className="section-heading">
-        <div>
-          <h2>Attendance Records</h2>
-          <p>Davomat, penalty va daily earning tafsilotlari</p>
+    <div style={{ display: "grid", gap: 8 }}>
+      {rows.length === 0 && (
+        <div className="meta-text" style={{ textAlign: "center", padding: 24 }}>
+          Yozuvlar topilmadi.
         </div>
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Sana</th>
-              {showEmployee ? <th>Xodim</th> : null}
-              <th>Status</th>
-              <th>Kirgan</th>
-              <th>Chiqqan</th>
-              <th>Ishlagan</th>
-              <th>Kech / Erta</th>
-              <th>Earned</th>
-              <th>Penalty</th>
-              <th>Net</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.date}</td>
-                {showEmployee ? <td>{row.employee?.user.fullName ?? "--"}</td> : null}
-                <td>
-                  <StatusPill status={row.status} />
-                </td>
-                <td>{formatTimeLabel(row.checkInTime) ?? "--"}</td>
-                <td>{formatTimeLabel(row.checkOutTime) ?? "--"}</td>
-                <td>{formatHoursCompact(row.workedMinutes)}</td>
-                <td>
-                  {row.lateMinutes} / {row.earlyLeaveMinutes} min
-                </td>
-                <td>{formatCurrencyUsd(row.dailyEarned)}</td>
-                <td>{formatCurrencyUsd(row.dailyPenalty)}</td>
-                <td>{formatCurrencyUsd(row.netDailyAmount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+      )}
+      {rows.map((row) => {
+        const isAbsent = row.status === "ABSENT";
+        const isLate = row.status === "LATE" || row.status === "EARLY_LEAVE";
+        const borderColor = isAbsent ? "var(--danger)" : isLate ? "var(--warning)" : "var(--success)";
+        const ciTime = formatTimeLabel(row.checkInTime) ?? "—";
+        const coTime = formatTimeLabel(row.checkOutTime) ?? "—";
+        return (
+          <div
+            key={row.id}
+            className="card"
+            style={{ borderLeft: `3px solid ${borderColor}`, padding: "10px 14px" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>{row.date}</span>
+              <StatusPill status={row.status} />
+            </div>
+            {showEmployee && row.employee && (
+              <div style={{ fontSize: 13, marginBottom: 3 }}>
+                {row.employee.user.fullName}
+              </div>
+            )}
+            <div className="meta-text" style={{ fontSize: 12 }}>
+              Kirdi: <b>{ciTime}</b>&nbsp; Chiqdi: <b>{coTime}</b>
+            </div>
+            <div className="meta-text" style={{ fontSize: 12, marginTop: 2 }}>
+              Ishladi: {formatHoursCompact(row.workedMinutes)}
+              {row.lateMinutes > 0 && (
+                <span style={{ color: "var(--warning)", marginLeft: 8 }}>+{row.lateMinutes}d kech</span>
+              )}
+              <span style={{ marginLeft: 8, color: "var(--success)" }}>
+                +{formatCurrencyUsd(row.netDailyAmount)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

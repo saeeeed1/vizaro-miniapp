@@ -6,7 +6,6 @@ import type { SettingsResponse } from "@/lib/types";
 import { useApiData } from "@/lib/client/use-api";
 import { useMiniApp } from "@/components/providers/miniapp-provider";
 import { AppShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 
@@ -49,54 +48,69 @@ export function SettingsScreen() {
   };
 
   return (
-    <AppShell
-      title="Settings"
-      subtitle="Work schedule, default salary va timezone boshqaruvi."
-      actions={
-        session?.user.role === "ADMIN" ? (
-          <Button onClick={() => void saveSettings()}>Save Settings</Button>
-        ) : null
-      }
-    >
+    <AppShell title="Sozlamalar" subtitle="Ish vaqti va maosh sozlamalari.">
       {query.loading ? <LoadingState /> : null}
       {query.error ? <ErrorState message={query.error} /> : null}
       {!query.loading && !query.error && query.data ? (
         <>
           <Card>
-            <h2>System Config</h2>
-            <p className="meta-text">{query.data.note}</p>
-            <div className="form-grid">
-              <input className="input" type="number" value={form.defaultMonthlySalaryUsd} onChange={(event) => setForm((prev) => ({ ...prev, defaultMonthlySalaryUsd: event.target.value }))} disabled={session?.user.role !== "ADMIN"} />
-              <input className="input" type="time" value={form.workStartTime} onChange={(event) => setForm((prev) => ({ ...prev, workStartTime: event.target.value }))} disabled={session?.user.role !== "ADMIN"} />
-              <input className="input" type="time" value={form.workEndTime} onChange={(event) => setForm((prev) => ({ ...prev, workEndTime: event.target.value }))} disabled={session?.user.role !== "ADMIN"} />
-              <select className="input" value={form.weeklyOffDay} onChange={(event) => setForm((prev) => ({ ...prev, weeklyOffDay: event.target.value }))} disabled={session?.user.role !== "ADMIN"}>
-                <option value="0">Sunday</option>
-                <option value="6">Saturday</option>
-              </select>
-              <input className="input" value={form.timezone} onChange={(event) => setForm((prev) => ({ ...prev, timezone: event.target.value }))} disabled={session?.user.role !== "ADMIN"} />
+            <h2 style={{ fontSize: 16, margin: "0 0 4px" }}>Sozlamalar</h2>
+            <p className="meta-text" style={{ marginBottom: 14 }}>{query.data.note}</p>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div className="field">
+                <label style={{ fontSize: 13, color: "var(--muted)" }}>Oylik maosh ($)</label>
+                <input className="input" type="number" style={{ minHeight: 44 }}
+                  value={form.defaultMonthlySalaryUsd}
+                  onChange={(e) => setForm(p => ({ ...p, defaultMonthlySalaryUsd: e.target.value }))}
+                  disabled={session?.user.role !== "ADMIN"} />
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13, color: "var(--muted)" }}>Ish boshlanish</label>
+                <input className="input" type="time" style={{ minHeight: 44 }}
+                  value={form.workStartTime}
+                  onChange={(e) => setForm(p => ({ ...p, workStartTime: e.target.value }))}
+                  disabled={session?.user.role !== "ADMIN"} />
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13, color: "var(--muted)" }}>Ish tugash</label>
+                <input className="input" type="time" style={{ minHeight: 44 }}
+                  value={form.workEndTime}
+                  onChange={(e) => setForm(p => ({ ...p, workEndTime: e.target.value }))}
+                  disabled={session?.user.role !== "ADMIN"} />
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13, color: "var(--muted)" }}>Dam kuni</label>
+                <select className="input" style={{ minHeight: 44 }}
+                  value={form.weeklyOffDay}
+                  onChange={(e) => setForm(p => ({ ...p, weeklyOffDay: e.target.value }))}
+                  disabled={session?.user.role !== "ADMIN"}>
+                  <option value="0">Yakshanba</option>
+                  <option value="6">Shanba</option>
+                </select>
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 13, color: "var(--muted)" }}>Timezone</label>
+                <input className="input" style={{ minHeight: 44 }}
+                  value={form.timezone}
+                  onChange={(e) => setForm(p => ({ ...p, timezone: e.target.value }))}
+                  disabled={session?.user.role !== "ADMIN"} />
+              </div>
+              {session?.user.role === "ADMIN" && (
+                <button
+                  className="button primary"
+                  style={{ width: "100%", minHeight: 48, fontSize: 15, fontWeight: 700 }}
+                  onClick={() => void saveSettings()}
+                >
+                  Saqlash
+                </button>
+              )}
+              {savedMessage && (
+                <div style={{ color: "var(--success)", fontSize: 13, textAlign: "center" }}>
+                  {savedMessage}
+                </div>
+              )}
             </div>
-            {savedMessage ? <div className="pill">{savedMessage}</div> : null}
           </Card>
-
-          <div className="two-col">
-            <Card>
-              <h3>Telegram Mini App Notes</h3>
-              <div className="stack">
-                <div className="pill">BotFather orqali Web App URL ni sozlang.</div>
-                <div className="pill">Mini App requestlari Telegram initData bilan auth qilinadi.</div>
-                <div className="pill">Demo mode yoqilganida local user switcher ishlaydi.</div>
-              </div>
-            </Card>
-            <Card>
-              <h3>Architecture</h3>
-              <div className="stack">
-                <div className="pill">Frontend: Next.js App Router</div>
-                <div className="pill">API: Next Route Handlers</div>
-                <div className="pill">DB schema: Prisma + PostgreSQL ready</div>
-                <div className="pill">Export: CSV working, Excel hook easy to extend</div>
-              </div>
-            </Card>
-          </div>
         </>
       ) : null}
       {!query.loading && !query.error && !query.data ? <EmptyState label="Settings topilmadi." /> : null}

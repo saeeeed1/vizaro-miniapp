@@ -27,16 +27,22 @@ export function BottomNav() {
   return (
     <nav
       className="bottom-nav"
-      style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}
+      style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, height: 56 }}
     >
       {tabs.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           className={pathname === item.href ? "nav-link active" : "nav-link"}
-          style={{ flexDirection: "column", gap: 3, fontSize: 11 }}
+          style={{
+            flexDirection: "column",
+            gap: 2,
+            fontSize: 10,
+            color: pathname === item.href ? "var(--success)" : undefined,
+            background: pathname === item.href ? "rgba(124,231,172,0.12)" : undefined,
+          }}
         >
-          <span style={{ fontSize: 18 }}>{item.label}</span>
+          <span style={{ fontSize: 16 }}>{item.label}</span>
           <span>{item.title}</span>
         </Link>
       ))}

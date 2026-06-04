@@ -469,3 +469,74 @@ th {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Mobile (375px) ─────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 10px 12px 80px;
+  }
+
+  .app-header h1 {
+    font-size: 18px;
+    margin: 4px 0 4px;
+  }
+
+  .app-header p {
+    font-size: 12px;
+  }
+
+  .card {
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .dash-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-salary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .two-col,
+  .three-col,
+  .stats-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-nav {
+    height: 56px;
+    padding: 6px 8px;
+    bottom: 6px;
+  }
+
+  .nav-link {
+    font-size: 10px;
+    padding: 6px 4px;
+  }
+
+  .metric-value {
+    font-size: 20px;
+  }
+
+  .metric-label {
+    font-size: 11px;
+  }
+
+  table th,
+  table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .button {
+    min-height: 44px;
+  }
+
+  .input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}

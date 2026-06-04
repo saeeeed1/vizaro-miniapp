@@ -94,29 +94,19 @@ export function EmployeesScreen() {
                 </div>
                 <StatusPill status={row.statusToday} />
               </div>
-              <div className="stats-grid">
-                <Card>
-                  <div className="metric-label">Kelgan kunlar</div>
-                  <div className="metric-value">{row.arrivedDays}</div>
-                </Card>
-                <Card>
-                  <div className="metric-label">Late / Absent</div>
-                  <div className="metric-value">
-                    {row.lateDays} / {row.absentDays}
-                  </div>
-                </Card>
-                <Card>
-                  <div className="metric-label">Worked</div>
-                  <div className="metric-value">{formatHoursCompact(row.workedMinutes)}</div>
-                </Card>
-                <Card>
-                  <div className="metric-label">Penalty</div>
-                  <div className="metric-value">{formatCurrencyUsd(row.totalPenalty)}</div>
-                </Card>
-                <Card>
-                  <div className="metric-label">Net Salary</div>
-                  <div className="metric-value">{formatCurrencyUsd(row.netSalary)}</div>
-                </Card>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 10 }}>
+                <div className="card" style={{ padding: "8px 10px", textAlign: "center" }}>
+                  <div className="meta-text" style={{ fontSize: 11 }}>Keldi</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{row.arrivedDays}</div>
+                </div>
+                <div className="card" style={{ padding: "8px 10px", textAlign: "center" }}>
+                  <div className="meta-text" style={{ fontSize: 11 }}>Kech/❌</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{row.lateDays}/{row.absentDays}</div>
+                </div>
+                <div className="card" style={{ padding: "8px 10px", textAlign: "center" }}>
+                  <div className="meta-text" style={{ fontSize: 11 }}>Net</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--success)" }}>{formatCurrencyUsd(row.netSalary)}</div>
+                </div>
               </div>
             </Card>
           ))}
