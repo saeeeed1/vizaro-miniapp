@@ -32,18 +32,31 @@ function SkeletonCard({ height = 120 }: { height?: number }) {
 // ADMIN DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const STATUS_ICON: Record<string, string> = {
-  present: "✅", working: "🟢", late: "⏰", late_done: "⏰",
+// Chegara rangi: working/late=yashil, present/late_done=kulrang, absent=qizil, not_marked=kulrang
+const STATUS_BORDER: Record<string, string> = {
+  working:    "#7ce7ac",
+  late:       "#7ce7ac",
+  present:    "rgba(255,255,255,0.25)",
+  late_done:  "rgba(255,255,255,0.25)",
+  absent:     "#f98077",
+  not_marked: "rgba(255,255,255,0.12)",
+};
+
+// Sarlavha emoji
+const STATUS_HEAD_ICON: Record<string, string> = {
+  working: "🟢", late: "🟢",
+  present: "⚫", late_done: "⚫",
   absent: "❌", not_marked: "⚪",
 };
-const STATUS_LABEL: Record<string, string> = {
-  present: "Vaqtida", working: "Ishda", late: "Kech (ishda)",
-  late_done: "Kech keldi", absent: "Kelmadi", not_marked: "Belgilamagan",
-};
-const STATUS_BORDER: Record<string, string> = {
-  present: "var(--success)", working: "var(--success)",
-  late: "var(--warning)", late_done: "var(--warning)",
-  absent: "var(--danger)", not_marked: "rgba(255,255,255,0.2)",
+
+// Holat satri matni
+const STATUS_LINE: Record<string, string> = {
+  working:    "🟢 Ishda",
+  late:       "🟢 Ishda",
+  present:    "⚫ Ketdi",
+  late_done:  "⚫ Ketdi",
+  absent:     "❌ Kelmadi",
+  not_marked: "⚪ Belgilamagan",
 };
 
 function AdminStatCard({ icon, count, label, color }: {
@@ -58,29 +71,47 @@ function AdminStatCard({ icon, count, label, color }: {
   );
 }
 
-function EmployeeCard({ emp }: { emp: TodayEmployee }) {
-  const border = STATUS_BORDER[emp.status] ?? "var(--border)";
+function EmployeeCard({ emp, beforeWork }: { emp: TodayEmployee; beforeWork: boolean }) {
+  const border = STATUS_BORDER[emp.status] ?? "rgba(255,255,255,0.15)";
+  const headIcon = STATUS_HEAD_ICON[emp.status] ?? "⚪";
+  const statusLine = beforeWork && emp.status === "not_marked"
+    ? "⏳ Ish boshlanmagan"
+    : STATUS_LINE[emp.status] ?? "⚪";
+
   return (
     <div className="card" style={{ borderLeft: `3px solid ${border}`, padding: "12px 16px" }}>
+      {/* Sarlavha: emoji + ism + username */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontWeight: 700, fontSize: 15 }}>
-          {STATUS_ICON[emp.status]} {emp.full_name}
+          {headIcon} {emp.full_name}
         </span>
         {emp.username && (
           <span className="meta-text" style={{ fontSize: 12 }}>@{emp.username}</span>
         )}
       </div>
+
+      {/* Vaqt satri */}
       <div className="meta-text" style={{ marginTop: 6, fontSize: 13 }}>
-        {emp.checkin_at
-          ? <>Keldi: <b>{emp.checkin_at.slice(0, 5)}</b>{emp.checkout_at ? <>  Ketdi: <b>{emp.checkout_at.slice(0, 5)}</b></> : "  Hozir ishda"}</>
-          : STATUS_LABEL[emp.status]}
+        {emp.checkin_at ? (
+          <>
+            Keldi: <b>{emp.checkin_at.slice(0, 5)}</b>
+            {emp.checkout_at && <>&nbsp;&nbsp;Ketdi: <b>{emp.checkout_at.slice(0, 5)}</b></>}
+            {emp.late_minutes > 0 && (
+              <span style={{ color: "var(--warning)", marginLeft: 8 }}>
+                +{emp.late_minutes} daqiqa kech
+              </span>
+            )}
+          </>
+        ) : null}
       </div>
-      {(emp.worked !== "—" && emp.worked) && (
-        <div className="meta-text" style={{ fontSize: 12, marginTop: 3 }}>
-          {emp.worked === "ishda" ? "🟢 Hozir ishda" : `⏱ ${emp.worked}`}
-          {emp.late_minutes > 0 && <span style={{ color: "var(--warning)", marginLeft: 8 }}>+{emp.late_minutes} daqiqa kech</span>}
-        </div>
-      )}
+
+      {/* Holat satri */}
+      <div className="meta-text" style={{ fontSize: 12, marginTop: 3 }}>
+        {statusLine}
+        {emp.checkin_at && emp.worked !== "—" && emp.worked !== "ishda" && (
+          <span style={{ marginLeft: 8 }}>⏱ {emp.worked}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -165,12 +196,21 @@ function AdminDashboardScreen() {
           </div>
 
           {/* Xodimlar ro'yxati */}
-          <div style={{ display: "grid", gap: 8 }}>
-            {d.employees.length === 0
-              ? <div className="meta-text" style={{ textAlign: "center", padding: 24 }}>Xodimlar topilmadi</div>
-              : d.employees.map(emp => <EmployeeCard key={emp.user_id} emp={emp} />)
-            }
-          </div>
+          {(() => {
+            const nowH = new Date().getHours();
+            const nowM = new Date().getMinutes();
+            const beforeWork = nowH < 10 || (nowH === 10 && nowM === 0);
+            return (
+              <div style={{ display: "grid", gap: 8 }}>
+                {d.employees.length === 0
+                  ? <div className="meta-text" style={{ textAlign: "center", padding: 24 }}>Xodimlar topilmadi</div>
+                  : d.employees.map(emp => (
+                      <EmployeeCard key={emp.user_id} emp={emp} beforeWork={beforeWork} />
+                    ))
+                }
+              </div>
+            );
+          })()}
 
           {/* 7 kunlik grafik */}
           {d.week_chart.length > 0 && <WeekChart data={d.week_chart} />}
