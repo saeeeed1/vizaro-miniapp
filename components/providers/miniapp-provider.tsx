@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import type { SessionPayload } from "@/lib/types";
+import type { BotUserInfo, SessionPayload } from "@/lib/types";
 
 declare global {
   interface Window {
@@ -20,6 +20,8 @@ declare global {
 
 interface MiniAppContextValue {
   session: SessionPayload | null;
+  botUser: BotUserInfo | null;
+  isAdmin: boolean;
   loading: boolean;
   error: string | null;
   isTelegram: boolean;
@@ -69,6 +71,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionPayload | null>(null);
+  const [botUser, setBotUser] = useState<BotUserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isTelegram, setIsTelegram] = useState(false);
@@ -91,6 +94,21 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadBotUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me", {
+        headers: buildAuthHeaders(),
+        cache: "no-store"
+      });
+      if (res.ok) {
+        const data = await res.json() as BotUserInfo;
+        setBotUser(data);
+      }
+    } catch {
+      // Bot server mavjud bo'lmasa — sessiya rolidan foydalanamiz
+    }
+  }, []);
+
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
     if (webApp) {
@@ -104,7 +122,8 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     }
 
     void refreshSession();
-  }, [refreshSession]);
+    void loadBotUser();
+  }, [refreshSession, loadBotUser]);
 
   const requestRaw = useCallback(async (path: string, init?: ApiRequestInit) => {
     const headers = new Headers(init?.headers ?? {});
@@ -158,9 +177,14 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     [refreshSession]
   );
 
+  // is_admin: bot server javobidan, yo'q bo'lsa session rolidan
+  const isAdmin = botUser ? botUser.is_admin : session?.user.role === "ADMIN";
+
   const value = useMemo<MiniAppContextValue>(
     () => ({
       session,
+      botUser,
+      isAdmin,
       loading,
       error,
       isTelegram,
@@ -169,7 +193,7 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
       refreshSession,
       switchDemoUser
     }),
-    [session, loading, error, isTelegram, request, requestRaw, refreshSession, switchDemoUser]
+    [session, botUser, isAdmin, loading, error, isTelegram, request, requestRaw, refreshSession, switchDemoUser]
   );
 
   return <MiniAppContext.Provider value={value}>{children}</MiniAppContext.Provider>;

@@ -25,23 +25,24 @@ export async function GET(request: Request) {
 
   if (botApiUrl) {
     try {
-      resolveSession(request.headers);
+      const session = resolveSession(request.headers);
       const realId = extractTelegramUserId(request.headers);
       const period = searchParams.get("period") ?? "month";
       const from = searchParams.get("from") ?? "";
       const to = searchParams.get("to") ?? "";
 
+      const isAdmin = session.user.role === "ADMIN";
       const qp = new URLSearchParams({ period });
       if (from) qp.set("from", from);
       if (to) qp.set("to", to);
+      // Non-admin: faqat o'z ma'lumotlari
+      if (!isAdmin && realId) qp.set("user_id", realId);
 
       const res = await fetch(
         `${botApiUrl.replace(/\/$/, "")}/api/attendance?${qp.toString()}`,
         { cache: "no-store", signal: AbortSignal.timeout(8000) }
       );
-      if (res.ok) {
-        return NextResponse.json(await res.json() as unknown);
-      }
+      if (res.ok) return NextResponse.json(await res.json() as unknown);
       if (realId) console.warn("Bot attendance xatosi:", res.status);
     } catch (err) {
       console.warn("Bot attendance ulanmadi:", err);

@@ -3,27 +3,41 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/attendance", label: "Attendance" },
-  { href: "/employees", label: "Employees" },
-  { href: "/reports", label: "Reports" },
-  { href: "/salary", label: "Salary" },
-  { href: "/settings", label: "Settings" }
+import { useMiniApp } from "@/components/providers/miniapp-provider";
+
+const ADMIN_TABS = [
+  { href: "/dashboard",  label: "📊", title: "Dashboard"  },
+  { href: "/attendance", label: "📋", title: "Attendance"  },
+  { href: "/employees",  label: "👥", title: "Employees"   },
+  { href: "/salary",     label: "💰", title: "Salary"      },
+  { href: "/settings",   label: "⚙️", title: "Settings"   },
+];
+
+const USER_TABS = [
+  { href: "/dashboard",  label: "📊", title: "Dashboard" },
+  { href: "/attendance", label: "📋", title: "Davomat"   },
+  { href: "/salary",     label: "💰", title: "Oylik"     },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { isAdmin } = useMiniApp();
+  const tabs = isAdmin ? ADMIN_TABS : USER_TABS;
 
   return (
-    <nav className="bottom-nav">
-      {navItems.map((item) => (
+    <nav
+      className="bottom-nav"
+      style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}
+    >
+      {tabs.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           className={pathname === item.href ? "nav-link active" : "nav-link"}
+          style={{ flexDirection: "column", gap: 3, fontSize: 11 }}
         >
-          {item.label}
+          <span style={{ fontSize: 18 }}>{item.label}</span>
+          <span>{item.title}</span>
         </Link>
       ))}
     </nav>

@@ -282,6 +282,14 @@ export interface DataStore {
   salaryConfig: SalaryConfig;
 }
 
+export interface BotUserInfo {
+  user_id: number;
+  full_name: string;
+  username: string | null;
+  is_admin: boolean;
+  is_allowed: boolean;
+}
+
 export interface DailyRecord {
   date: string;
   status: string;

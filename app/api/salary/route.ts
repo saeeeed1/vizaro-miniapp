@@ -21,24 +21,26 @@ function extractTelegramUserId(headers: Headers): string | null {
 
 export async function GET(request: Request) {
   const botApiUrl = process.env.BOT_API_URL;
+  const { searchParams } = new URL(request.url);
 
   if (botApiUrl) {
     try {
-      resolveSession(request.headers);
+      const session = resolveSession(request.headers);
+      const realId = extractTelegramUserId(request.headers);
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const realId = extractTelegramUserId(request.headers);
+
+      const isAdmin = searchParams.get("admin") === "1" || session.user.role === "ADMIN";
+      const qp = new URLSearchParams({ month });
+      // Non-admin: faqat o'z ma'lumotlari
+      if (!isAdmin && realId) qp.set("user_id", realId);
 
       const res = await fetch(
-        `${botApiUrl.replace(/\/$/, "")}/api/salary?month=${month}`,
+        `${botApiUrl.replace(/\/$/, "")}/api/salary?${qp.toString()}`,
         { cache: "no-store", signal: AbortSignal.timeout(8000) }
       );
-      if (res.ok) {
-        return NextResponse.json(await res.json() as unknown);
-      }
-      if (!realId) { /* browser/demo — fallthrough */ } else {
-        console.warn("Bot salary xatosi:", res.status);
-      }
+      if (res.ok) return NextResponse.json(await res.json() as unknown);
+      if (realId) console.warn("Bot salary xatosi:", res.status);
     } catch (err) {
       console.warn("Bot salary ulanmadi:", err);
     }
