@@ -5,7 +5,10 @@ import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 import { fail, withApi } from "@/lib/api-response";
 import { getEmployeeDashboardData } from "@/lib/repository";
 
-/** x-telegram-init-data headerdan real Telegram user.id ni parse qiladi. */
+/**
+ * x-telegram-init-data headerdan real Telegram user.id ni parse qiladi.
+ * HMAC tekshiruvsiz — faqat ID olish uchun.
+ */
 function extractTelegramUserId(headers: Headers): string | null {
   const initData = headers.get(TELEGRAM_INIT_DATA_HEADER);
   if (!initData) return null;
@@ -27,10 +30,9 @@ export async function GET(request: Request) {
     try {
       const session = resolveSession(request.headers);
 
-      // Birinchi navbatda initData dan real Telegram ID ni olamiz —
-      // demo mode yoki token xatosida ham ishlaydi
-      const telegramId =
-        extractTelegramUserId(request.headers) ?? session.user.telegramId;
+      // Birinchi navbatda initData dan real Telegram ID ni olamiz
+      const realTelegramId = extractTelegramUserId(request.headers);
+      const telegramId = realTelegramId ?? session.user.telegramId;
 
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -45,8 +47,13 @@ export async function GET(request: Request) {
         return NextResponse.json(data);
       }
 
-      // 404 = foydalanuvchi yozuvi yo'q → demo ga o'tamiz
-      if (res.status !== 404) {
+      if (res.status === 404) {
+        // Real Telegram foydalanuvchi — demo ga tushmasin, bo'sh holat ko'rsatilsin
+        if (realTelegramId) {
+          return fail("Bu oy uchun davomat yozuvlari topilmadi.", 404);
+        }
+        // Demo yoki brauzer rejimi — demo data ga o'tamiz
+      } else {
         const body = await res.json().catch(() => ({})) as { error?: string };
         return fail(body.error ?? "Bot server xatosi", res.status);
       }
@@ -55,5 +62,6 @@ export async function GET(request: Request) {
     }
   }
 
+  // Fallback: in-memory demo data (brauzer/test uchun)
   return withApi(() => getEmployeeDashboardData(request.headers));
 }

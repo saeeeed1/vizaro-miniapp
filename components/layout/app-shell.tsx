@@ -17,7 +17,7 @@ export function AppShell({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
-  const { session, loading, error } = useMiniApp();
+  const { loading, error } = useMiniApp();
 
   return (
     <div className="app-shell">
@@ -31,11 +31,6 @@ export function AppShell({
           {actions}
         </div>
       </header>
-
-      <div className="session-strip">
-        <span>{session ? `${session.user.fullName} / ${session.user.role}` : "Sessiya yuklanmoqda"}</span>
-        <span>{session?.config.timezone ?? "Asia/Tashkent"}</span>
-      </div>
 
       <main className="page-body">
         {loading ? <LoadingState label="Mini App sessiyasi yuklanmoqda..." /> : null}
