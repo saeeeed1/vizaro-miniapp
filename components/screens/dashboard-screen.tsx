@@ -254,10 +254,9 @@ function EarnedCard({ data }: { data: EmployeeDashboardData }) {
 }
 
 function DeductionCard({ data }: { data: EmployeeDashboardData }) {
-  const earned   = data.salary_earned;
-  const base     = data.salary_base;
+  const earned    = data.salary_earned;
+  const base      = data.salary_base;
   const remaining = base - earned;
-  const earnedPct   = base > 0 ? Math.round((earned   / base) * 100) : 0;
   const remainingPct = base > 0 ? Math.round((remaining / base) * 100) : 0;
 
   const lateD   = data.late_deducted   ?? 0;
@@ -271,14 +270,6 @@ function DeductionCard({ data }: { data: EmployeeDashboardData }) {
       <div className="meta-text">📉 Oy holati</div>
 
       <div style={{ height: 1, background: "var(--border)", margin: "10px 0 8px" }} />
-
-      {/* Ishlangan */}
-      <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-        <span>✅ Ishlangan:</span>
-        <span style={{ color: "var(--success)", fontWeight: 600 }}>
-          ${earned.toFixed(2)} <span style={{ color: "var(--muted)", fontWeight: 400 }}>({earnedPct}%)</span>
-        </span>
-      </div>
 
       {/* Qoldi */}
       <div className="meta-text" style={{ display: "flex", justifyContent: "space-between" }}>
