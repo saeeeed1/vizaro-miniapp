@@ -1240,6 +1240,7 @@ function buildNewEmployeeDashboard(store: DataStore, employee: Employee): Employ
     salary_deducted,
     late_deducted: 0,
     absent_deducted: salary_deducted,
+    early_deducted: 0,
     salary_projected,
     day_rate: dayRate,
     second_rate: secondRate,

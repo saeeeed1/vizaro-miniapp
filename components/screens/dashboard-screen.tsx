@@ -257,10 +257,10 @@ function DeductionCard({ data }: { data: EmployeeDashboardData }) {
   // Katta raqam: UMUMIY ayirma (kelmagan + kech + erta ketish hammasi)
   const totalDeducted = data.salary_base - data.salary_earned;
 
-  // Tushuntirish qatorlari
+  // Tushuntirish qatorlari — API dan to'g'ridan-to'g'ri
   const lateD   = data.late_deducted   ?? 0;
   const absentD = data.absent_deducted ?? 0;
-  const earlyD  = Math.max(0, totalDeducted - lateD - absentD);
+  const earlyD  = data.early_deducted  ?? 0;
 
   const hasBreakdown = lateD > 0.01 || absentD > 0.01 || earlyD > 0.01;
 
