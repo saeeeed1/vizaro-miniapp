@@ -1239,7 +1239,7 @@ function buildNewEmployeeDashboard(store: DataStore, employee: Employee): Employ
     salary_earned,
     salary_deducted,
     late_deducted: 0,
-    short_day_deducted: salary_deducted,
+    absent_deducted: salary_deducted,
     salary_projected,
     day_rate: dayRate,
     second_rate: secondRate,
