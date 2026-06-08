@@ -254,43 +254,60 @@ function EarnedCard({ data }: { data: EmployeeDashboardData }) {
 }
 
 function DeductionCard({ data }: { data: EmployeeDashboardData }) {
-  // Katta raqam: UMUMIY ayirma (kelmagan + kech + erta ketish hammasi)
-  const totalDeducted = data.salary_base - data.salary_earned;
+  const earned   = data.salary_earned;
+  const base     = data.salary_base;
+  const remaining = base - earned;
+  const earnedPct   = base > 0 ? Math.round((earned   / base) * 100) : 0;
+  const remainingPct = base > 0 ? Math.round((remaining / base) * 100) : 0;
 
-  // Tushuntirish qatorlari — API dan to'g'ridan-to'g'ri
   const lateD   = data.late_deducted   ?? 0;
   const absentD = data.absent_deducted ?? 0;
   const earlyD  = data.early_deducted  ?? 0;
 
-  const hasBreakdown = lateD > 0.01 || absentD > 0.01 || earlyD > 0.01;
+  const hasPenalties = lateD > 0.01 || absentD > 0.01 || earlyD > 0.01;
 
   return (
     <div className="card dash-anim" style={{ animationDelay: "80ms" }}>
-      <div className="meta-text">📉 Ayirilgan</div>
-      <div style={{ fontSize: 32, fontWeight: 800, margin: "8px 0 6px", color: "var(--danger)" }}>
-        −${totalDeducted.toFixed(2)}
+      <div className="meta-text">📉 Oy holati</div>
+
+      <div style={{ height: 1, background: "var(--border)", margin: "10px 0 8px" }} />
+
+      {/* Ishlangan */}
+      <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+        <span>✅ Ishlangan:</span>
+        <span style={{ color: "var(--success)", fontWeight: 600 }}>
+          ${earned.toFixed(2)} <span style={{ color: "var(--muted)", fontWeight: 400 }}>({earnedPct}%)</span>
+        </span>
       </div>
-      {totalDeducted < 0.01 ? (
-        <div className="meta-text" style={{ color: "var(--success)" }}>Barcha kunlar vaqtida ✓</div>
-      ) : hasBreakdown && (
+
+      {/* Qoldi */}
+      <div className="meta-text" style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>📅 Qoldi:</span>
+        <span style={{ color: "var(--muted)", fontWeight: 500 }}>
+          ${remaining.toFixed(2)} <span style={{ fontWeight: 400 }}>({remainingPct}%)</span>
+        </span>
+      </div>
+
+      {/* Jarima qatorlari */}
+      {hasPenalties && (
         <>
-          <div style={{ height: 1, background: "var(--border)", margin: "6px 0 8px" }} />
+          <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
           {lateD > 0.01 && (
             <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               <span>⏰ Kech kelish:</span>
-              <span style={{ color: "var(--muted)", fontWeight: 500 }}>−${lateD.toFixed(2)}</span>
+              <span style={{ color: "var(--warning)", fontWeight: 600 }}>−${lateD.toFixed(2)}</span>
             </div>
           )}
           {absentD > 0.01 && (
             <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               <span>❌ Kelmagan:</span>
-              <span style={{ color: "var(--muted)", fontWeight: 500 }}>−${absentD.toFixed(2)}</span>
+              <span style={{ color: "var(--danger)", fontWeight: 600 }}>−${absentD.toFixed(2)}</span>
             </div>
           )}
           {earlyD > 0.01 && (
             <div className="meta-text" style={{ display: "flex", justifyContent: "space-between" }}>
               <span>🚪 Erta ketish:</span>
-              <span style={{ color: "var(--muted)", fontWeight: 500 }}>−${earlyD.toFixed(2)}</span>
+              <span style={{ color: "var(--danger)", fontWeight: 600 }}>−${earlyD.toFixed(2)}</span>
             </div>
           )}
         </>
