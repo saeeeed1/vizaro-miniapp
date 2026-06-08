@@ -254,17 +254,35 @@ function EarnedCard({ data }: { data: EmployeeDashboardData }) {
 }
 
 function DeductionCard({ data }: { data: EmployeeDashboardData }) {
-  const late_ded = data.late_seconds_total * data.second_rate;
-  const absent_ded = data.absent_days * data.day_rate;
+  const lateD  = data.late_deducted      ?? data.late_seconds_total * data.second_rate;
+  const shortD = data.short_day_deducted ?? 0;
+  const hasBreakdown = lateD > 0.01 || shortD > 0.01;
   return (
     <div className="card dash-anim" style={{ animationDelay: "80ms" }}>
-      <div className="meta-text">📉 Ayirilgan summa</div>
-      <div style={{ fontSize: 32, fontWeight: 800, margin: "8px 0 8px", color: "var(--danger)" }}>
+      <div className="meta-text">📉 Ayirilgan</div>
+      <div style={{ fontSize: 32, fontWeight: 800, margin: "8px 0 6px", color: "var(--danger)" }}>
         −${data.salary_deducted.toFixed(2)}
       </div>
-      {late_ded > 0 && <div className="meta-text" style={{ marginBottom: 2 }}>⏰ Kechikish: ${late_ded.toFixed(2)}</div>}
-      {absent_ded > 0 && <div className="meta-text">❌ Kelmadi: ${absent_ded.toFixed(2)}</div>}
-      {data.salary_deducted < 0.01 && <div className="meta-text" style={{ color: "var(--success)" }}>Barcha kunlar vaqtida ✓</div>}
+      {hasBreakdown && (
+        <>
+          <div style={{ height: 1, background: "var(--border)", margin: "6px 0 8px" }} />
+          {lateD > 0.01 && (
+            <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span>⏰ Kech kelish:</span>
+              <span style={{ color: "var(--warning)", fontWeight: 600 }}>−${lateD.toFixed(2)}</span>
+            </div>
+          )}
+          {shortD > 0.01 && (
+            <div className="meta-text" style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>📅 Qisqa kunlar:</span>
+              <span style={{ color: "var(--danger)", fontWeight: 600 }}>−${shortD.toFixed(2)}</span>
+            </div>
+          )}
+        </>
+      )}
+      {data.salary_deducted < 0.01 && (
+        <div className="meta-text" style={{ color: "var(--success)" }}>Barcha kunlar vaqtida ✓</div>
+      )}
     </div>
   );
 }
