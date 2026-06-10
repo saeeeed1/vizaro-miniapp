@@ -670,6 +670,7 @@ function formatWorked(sec: number) {
 }
 
 function DailyRow({ record, secondRate, dayRate }: { record: DailyRecord; secondRate: number; dayRate: number }) {
+  const isWaiting = record.status === "waiting";
   const isAbsent = record.status.includes("absent");
   const isLate = record.status.includes("late") || record.status.includes("early");
   const isOff = record.status.includes("off") || record.status.includes("sunday");
@@ -678,7 +679,8 @@ function DailyRow({ record, secondRate, dayRate }: { record: DailyRecord; second
   else if (isLate) rowBg = "rgba(241,188,83,0.07)";
   else if (isOff) rowBg = "rgba(255,255,255,0.03)";
   let impact = "—";
-  if (isAbsent) impact = `−$${dayRate.toFixed(2)}`;
+  if (isWaiting) impact = "—";
+  else if (isAbsent) impact = `−$${dayRate.toFixed(2)}`;
   else if (isLate && record.late_seconds > 0) {
     const ded = record.late_seconds * secondRate;
     const m = Math.floor(record.late_seconds / 60);
@@ -686,14 +688,17 @@ function DailyRow({ record, secondRate, dayRate }: { record: DailyRecord; second
   } else if (record.status === "on_time" || record.status === "full_day") {
     impact = `+$${dayRate.toFixed(2)}`;
   }
+  const impactColor = isWaiting
+    ? "var(--muted)"
+    : isAbsent ? "var(--danger)" : isLate ? "var(--warning)" : "var(--success)";
   return (
     <tr style={{ background: rowBg }}>
       <td style={{ fontWeight: 600, fontSize: 13 }}>{formatDateShort(record.date)}</td>
-      <td style={{ fontSize: 18 }}>{statusIcon(record.status)}</td>
+      <td style={{ fontSize: 18 }} title={isWaiting ? "Kutilmoqda" : undefined}>{statusIcon(record.status)}</td>
       <td style={{ fontFamily: "monospace", fontSize: 13, color: "var(--muted)" }}>{record.checkin ?? "—"}</td>
       <td style={{ fontFamily: "monospace", fontSize: 13, color: "var(--muted)" }}>{record.checkout ?? "—"}</td>
-      <td style={{ fontSize: 13 }}>{formatWorked(record.worked_seconds)}</td>
-      <td style={{ fontSize: 13, color: isAbsent ? "var(--danger)" : isLate ? "var(--warning)" : "var(--success)", fontWeight: 600 }}>{impact}</td>
+      <td style={{ fontSize: 13 }}>{isWaiting ? "—" : formatWorked(record.worked_seconds)}</td>
+      <td style={{ fontSize: 13, color: impactColor, fontWeight: 600 }}>{impact}</td>
     </tr>
   );
 }
