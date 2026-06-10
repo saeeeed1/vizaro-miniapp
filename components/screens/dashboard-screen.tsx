@@ -241,6 +241,232 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
+// ── Keldim/Ketdim (GPS bilan, Mini App ichida) ─────────────────────────────────
+
+interface CheckinResponse {
+  ok: boolean;
+  reason?: string;
+  action?: "checkin" | "checkout";
+  time?: string;
+  distance?: number;
+  late_seconds?: number;
+  is_late?: boolean;
+  early_seconds?: number;
+  is_early?: boolean;
+}
+
+type RequestRaw = (
+  path: string,
+  init?: { method?: string; body?: Record<string, unknown> },
+) => Promise<Response>;
+
+function tashkentToday(): string {
+  // YYYY-MM-DD (Asia/Tashkent) — daily_records sanasiga moslash uchun
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
+}
+
+function CheckButtons({
+  data, requestRaw, onDone,
+}: { data: EmployeeDashboardData; requestRaw: RequestRaw; onDone: () => void }) {
+  const todayISO = tashkentToday();
+  const todayRec = data.daily_records.find((r) => r.date === todayISO);
+  const checkedIn = !!todayRec?.checkin;
+  const checkedOut = !!todayRec?.checkout;
+
+  const [busy, setBusy] = useState<"checkin" | "checkout" | null>(null);
+  const [toast, setToast] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
+  const [reason, setReason] = useState<{ type: "late" | "early"; minutes: number } | null>(null);
+  const [reasonText, setReasonText] = useState("");
+  const [reasonBusy, setReasonBusy] = useState(false);
+
+  async function handleCheck(action: "checkin" | "checkout") {
+    if (busy) return;
+    setBusy(action);
+    setToast(null);
+    setReason(null);
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setToast({ text: "❌ GPS qo'llab-quvvatlanmaydi", tone: "err" });
+      setBusy(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await requestRaw("/api/checkin", {
+            method: "POST",
+            body: { lat: pos.coords.latitude, lon: pos.coords.longitude, action },
+          });
+          const d = (await res.json()) as CheckinResponse;
+          if (d.ok) {
+            const t = (d.time ?? "").slice(0, 5);
+            setToast({ text: `✅ Qayd etildi ${t}`, tone: "ok" });
+            if (action === "checkin" && d.is_late) {
+              setReason({ type: "late", minutes: Math.round((d.late_seconds ?? 0) / 60) });
+            } else if (action === "checkout" && d.is_early) {
+              setReason({ type: "early", minutes: Math.round((d.early_seconds ?? 0) / 60) });
+            }
+            onDone();
+          } else {
+            setToast({ text: mapError(d), tone: "err" });
+          }
+        } catch {
+          setToast({ text: "❌ Server bilan ulanish yo'q", tone: "err" });
+        } finally {
+          setBusy(null);
+        }
+      },
+      (err) => {
+        setBusy(null);
+        setToast({
+          text: err.code === err.PERMISSION_DENIED
+            ? "❌ GPS ruxsatini bering"
+            : "❌ Joylashuv aniqlanmadi",
+          tone: "err",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
+  function mapError(d: CheckinResponse): string {
+    switch (d.reason) {
+      case "not_in_office":   return `📍 Ofisda emassiz (${d.distance ?? "?"}m uzoq)`;
+      case "already_checkin": return `⚠️ Allaqachon keldingiz ${(d.time ?? "").slice(0, 5)}`;
+      case "already_checkout":return `⚠️ Allaqachon ketdingiz ${(d.time ?? "").slice(0, 5)}`;
+      case "no_checkin":      return "⚠️ Avval Keldim ni bosing";
+      case "not_workday":     return "🚫 Bugun dam kuni";
+      case "marked_absent":   return "⚠️ Bugun kelmaysiz deb belgilangan";
+      default:                return "❌ Xatolik yuz berdi";
+    }
+  }
+
+  async function submitReason() {
+    if (!reason || !reasonText.trim() || reasonBusy) return;
+    setReasonBusy(true);
+    try {
+      const res = await requestRaw("/api/reason", {
+        method: "POST",
+        body: { date: todayISO, type: reason.type, reason: reasonText.trim() },
+      });
+      const d = (await res.json()) as { ok?: boolean };
+      if (d.ok) {
+        setToast({ text: "✅ Sabab yuborildi", tone: "ok" });
+        setReason(null);
+        setReasonText("");
+      } else {
+        setToast({ text: "❌ Sabab yuborilmadi", tone: "err" });
+      }
+    } catch {
+      setToast({ text: "❌ Sabab yuborilmadi", tone: "err" });
+    } finally {
+      setReasonBusy(false);
+    }
+  }
+
+  const inLabel = busy === "checkin"
+    ? "📍 Tekshirilmoqda..."
+    : checkedIn ? `✅ ${todayRec?.checkin?.slice(0, 5)}` : "✅ Keldim";
+  const outLabel = busy === "checkout"
+    ? "📍 Tekshirilmoqda..."
+    : checkedOut ? `🚪 ${todayRec?.checkout?.slice(0, 5)}` : "🚪 Ketdim";
+
+  const bigBtn = (active: boolean, disabled: boolean): React.CSSProperties => ({
+    flex: 1,
+    padding: "18px 0",
+    borderRadius: 16,
+    border: "none",
+    fontSize: 17,
+    fontWeight: 800,
+    color: disabled ? "var(--muted)" : "#04140c",
+    background: disabled
+      ? "rgba(255,255,255,0.06)"
+      : active
+        ? "linear-gradient(135deg,#7ce7ac,#4fd18b)"
+        : "rgba(255,255,255,0.06)",
+    cursor: disabled ? "default" : "pointer",
+    transition: "transform 0.1s, opacity 0.2s",
+  });
+
+  return (
+    <div className="card dash-anim" style={{ animationDelay: "0ms" }}>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button
+          style={bigBtn(true, checkedIn || busy !== null)}
+          disabled={checkedIn || busy !== null}
+          onClick={() => handleCheck("checkin")}
+        >
+          {inLabel}
+        </button>
+        <button
+          style={bigBtn(checkedIn, checkedOut || !checkedIn || busy !== null)}
+          disabled={checkedOut || !checkedIn || busy !== null}
+          onClick={() => handleCheck("checkout")}
+        >
+          {outLabel}
+        </button>
+      </div>
+
+      {toast && (
+        <div
+          className="meta-text"
+          style={{
+            marginTop: 12,
+            padding: "10px 12px",
+            borderRadius: 10,
+            textAlign: "center",
+            fontWeight: 600,
+            color: toast.tone === "ok" ? "var(--success)" : "var(--danger)",
+            background: toast.tone === "ok" ? "rgba(124,231,172,0.10)" : "rgba(249,128,119,0.10)",
+          }}
+        >
+          {toast.text}
+        </div>
+      )}
+
+      {reason && (
+        <div style={{ marginTop: 12, padding: "12px", borderRadius: 12, background: "rgba(241,188,83,0.08)", border: "1px solid rgba(241,188,83,0.25)" }}>
+          <div className="meta-text" style={{ color: "var(--warning)", fontWeight: 700, marginBottom: 8 }}>
+            {reason.type === "late"
+              ? `⏰ ${reason.minutes} daqiqa kech keldingiz`
+              : `🚪 ${reason.minutes} daqiqa erta ketdingiz`}
+          </div>
+          <textarea
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value)}
+            placeholder="Sababini yozing..."
+            rows={2}
+            style={{
+              width: "100%", boxSizing: "border-box", resize: "none",
+              padding: "10px 12px", borderRadius: 10, fontSize: 14,
+              background: "var(--panel-strong)", color: "var(--text, #fff)",
+              border: "1px solid var(--border)", outline: "none",
+            }}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button
+              className="button primary"
+              style={{ flex: 1, fontSize: 14, opacity: reasonText.trim() && !reasonBusy ? 1 : 0.5 }}
+              disabled={!reasonText.trim() || reasonBusy}
+              onClick={submitReason}
+            >
+              {reasonBusy ? "..." : "Yuborish"}
+            </button>
+            <button
+              className="button secondary"
+              style={{ flex: 1, fontSize: 14 }}
+              onClick={() => { setReason(null); setReasonText(""); }}
+            >
+              Keyinroq
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EarnedCard({ data }: { data: EmployeeDashboardData }) {
   return (
     <div className="card dash-anim" style={{ animationDelay: "0ms" }}>
@@ -503,7 +729,7 @@ function DailyTable({ data }: { data: EmployeeDashboardData }) {
 }
 
 function EmployeeDashboardScreen() {
-  const { request, session } = useMiniApp();
+  const { request, requestRaw, session } = useMiniApp();
   const [refreshKey, setRefreshKey] = useState(0);
   const query = useApiData<EmployeeDashboardData>(
     () => request("/api/dashboard"),
@@ -530,6 +756,11 @@ function EmployeeDashboardScreen() {
       {!query.loading && !query.error && !query.data && <EmptyState label="Ma'lumot topilmadi." />}
       {!query.loading && !query.error && query.data && (
         <div className="page-body">
+          <CheckButtons
+            data={query.data}
+            requestRaw={requestRaw}
+            onDone={() => setRefreshKey((k) => k + 1)}
+          />
           <div className="dash-salary-grid">
             <EarnedCard data={query.data} />
             <DeductionCard data={query.data} />
