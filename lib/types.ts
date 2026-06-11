@@ -362,6 +362,9 @@ export interface EmployeeDashboardData {
   late_deducted: number;
   absent_deducted: number;
   early_deducted: number;
+  reason_submitted: boolean;
+  late_reason_submitted: boolean;
+  early_reason_submitted: boolean;
   salary_projected: number;
   day_rate: number;
   second_rate: number;

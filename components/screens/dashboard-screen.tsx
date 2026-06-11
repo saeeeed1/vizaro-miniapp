@@ -302,9 +302,10 @@ function CheckButtons({
           if (d.ok) {
             const t = (d.time ?? "").slice(0, 5);
             setToast({ text: `✅ Qayd etildi ${t}`, tone: "ok" });
-            if (action === "checkin" && d.is_late) {
+            // Sabab maydoni — faqat hali yuborilmagan bo'lsa
+            if (action === "checkin" && d.is_late && !data.late_reason_submitted) {
               setReason({ type: "late", minutes: Math.round((d.late_seconds ?? 0) / 60) });
-            } else if (action === "checkout" && d.is_early) {
+            } else if (action === "checkout" && d.is_early && !data.early_reason_submitted) {
               setReason({ type: "early", minutes: Math.round((d.early_seconds ?? 0) / 60) });
             }
             onDone();
@@ -355,6 +356,7 @@ function CheckButtons({
         setToast({ text: "✅ Sabab yuborildi", tone: "ok" });
         setReason(null);
         setReasonText("");
+        onDone();   // dashboard yangilanadi — reason_submitted=true bo'ladi
       } else {
         setToast({ text: "❌ Sabab yuborilmadi", tone: "err" });
       }
@@ -425,7 +427,7 @@ function CheckButtons({
         </div>
       )}
 
-      {reason && (
+      {reason && !(reason.type === "late" ? data.late_reason_submitted : data.early_reason_submitted) && (
         <div style={{ marginTop: 12, padding: "12px", borderRadius: 12, background: "rgba(241,188,83,0.08)", border: "1px solid rgba(241,188,83,0.25)" }}>
           <div className="meta-text" style={{ color: "var(--warning)", fontWeight: 700, marginBottom: 8 }}>
             {reason.type === "late"
