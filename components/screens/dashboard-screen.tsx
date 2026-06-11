@@ -270,8 +270,17 @@ function CheckButtons({
 }: { data: EmployeeDashboardData; requestRaw: RequestRaw; onDone: () => void }) {
   const todayISO = tashkentToday();
   const todayRec = data.daily_records.find((r) => r.date === todayISO);
-  const checkedIn = !!todayRec?.checkin;
-  const checkedOut = !!todayRec?.checkout;
+
+  // Local state — server javobidan keyin darhol button holatini yangilash uchun
+  // (onDone() ni chaqirmaslik, chunki u refetch qiladi va CheckButtons unmount bo'ladi)
+  const [localCheckedIn, setLocalCheckedIn] = useState(false);
+  const [localCheckedOut, setLocalCheckedOut] = useState(false);
+  const [localTime, setLocalTime] = useState<{ checkin?: string; checkout?: string }>({});
+
+  const checkedIn  = !!todayRec?.checkin  || localCheckedIn;
+  const checkedOut = !!todayRec?.checkout || localCheckedOut;
+  const checkinTime  = localTime.checkin  ?? todayRec?.checkin?.slice(0, 5);
+  const checkoutTime = localTime.checkout ?? todayRec?.checkout?.slice(0, 5);
 
   const [busy, setBusy] = useState<"checkin" | "checkout" | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
@@ -302,13 +311,20 @@ function CheckButtons({
           if (d.ok) {
             const t = (d.time ?? "").slice(0, 5);
             setToast({ text: `✅ Qayd etildi ${t}`, tone: "ok" });
+            // Tugma holatini darhol yangilaymiz — onDone() chaqirmaymiz (refetch → unmount → reason yo'qoladi)
+            if (action === "checkin") {
+              setLocalCheckedIn(true);
+              setLocalTime(prev => ({ ...prev, checkin: t }));
+            } else {
+              setLocalCheckedOut(true);
+              setLocalTime(prev => ({ ...prev, checkout: t }));
+            }
             // Sabab maydoni — faqat hali yuborilmagan bo'lsa
             if (action === "checkin" && d.is_late && !data.late_reason_submitted) {
               setReason({ type: "late", minutes: Math.round((d.late_seconds ?? 0) / 60) });
             } else if (action === "checkout" && d.is_early && !data.early_reason_submitted) {
               setReason({ type: "early", minutes: Math.round((d.early_seconds ?? 0) / 60) });
             }
-            onDone();
           } else {
             setToast({ text: mapError(d), tone: "err" });
           }
@@ -369,10 +385,10 @@ function CheckButtons({
 
   const inLabel = busy === "checkin"
     ? "📍 Tekshirilmoqda..."
-    : checkedIn ? `✅ ${todayRec?.checkin?.slice(0, 5)}` : "✅ Keldim";
+    : checkedIn ? `✅ ${checkinTime ?? ""}` : "✅ Keldim";
   const outLabel = busy === "checkout"
     ? "📍 Tekshirilmoqda..."
-    : checkedOut ? `🚪 ${todayRec?.checkout?.slice(0, 5)}` : "🚪 Ketdim";
+    : checkedOut ? `🚪 ${checkoutTime ?? ""}` : "🚪 Ketdim";
 
   const bigBtn = (active: boolean, disabled: boolean): React.CSSProperties => ({
     flex: 1,
