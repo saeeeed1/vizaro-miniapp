@@ -265,6 +265,27 @@ function tashkentToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
 }
 
+// ── Telegram WebApp LocationManager (native GPS, Bot API 8.0+) ──────────────────
+// WebView ichida brauzer geolocation'iga qaraganda ishonchliroq.
+interface TgLocationData {
+  latitude: number;
+  longitude: number;
+}
+interface TgLocationManager {
+  isInited?: boolean;
+  isLocationAvailable?: boolean;
+  init: (cb?: () => void) => void;
+  getLocation: (cb: (data: TgLocationData | null) => void) => void;
+  openSettings?: () => void;
+}
+function getTgLocationManager(): TgLocationManager | null {
+  if (typeof window === "undefined") return null;
+  const tg = (window as unknown as {
+    Telegram?: { WebApp?: { LocationManager?: TgLocationManager } };
+  }).Telegram;
+  return tg?.WebApp?.LocationManager ?? null;
+}
+
 function CheckButtons({
   data, requestRaw, onDone,
 }: { data: EmployeeDashboardData; requestRaw: RequestRaw; onDone: () => void }) {
@@ -288,60 +309,107 @@ function CheckButtons({
   const [reasonText, setReasonText] = useState("");
   const [reasonBusy, setReasonBusy] = useState(false);
 
-  async function handleCheck(action: "checkin" | "checkout") {
+  // Joylashuv olingach — serverga checkin/checkout yuborish
+  async function sendCheckin(lat: number, lon: number, action: "checkin" | "checkout") {
+    try {
+      const res = await requestRaw("/api/checkin", {
+        method: "POST",
+        body: { lat, lon, action },
+      });
+      const d = (await res.json()) as CheckinResponse;
+      if (d.ok) {
+        const t = (d.time ?? "").slice(0, 5);
+        setToast({ text: `✅ Qayd etildi ${t}`, tone: "ok" });
+        // Tugma holatini darhol yangilaymiz — onDone() chaqirmaymiz (refetch → unmount → reason yo'qoladi)
+        if (action === "checkin") {
+          setLocalCheckedIn(true);
+          setLocalTime((prev) => ({ ...prev, checkin: t }));
+        } else {
+          setLocalCheckedOut(true);
+          setLocalTime((prev) => ({ ...prev, checkout: t }));
+        }
+        // Sabab maydoni — faqat hali yuborilmagan bo'lsa
+        if (action === "checkin" && d.is_late && !data.late_reason_submitted) {
+          setReason({ type: "late", minutes: Math.round((d.late_seconds ?? 0) / 60) });
+        } else if (action === "checkout" && d.is_early && !data.early_reason_submitted) {
+          setReason({ type: "early", minutes: Math.round((d.early_seconds ?? 0) / 60) });
+        }
+      } else {
+        setToast({ text: mapError(d), tone: "err" });
+      }
+    } catch {
+      setToast({ text: "❌ Server bilan ulanish yo'q", tone: "err" });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function handleCheck(action: "checkin" | "checkout") {
     if (busy) return;
     setBusy(action);
     setToast(null);
     setReason(null);
 
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setToast({ text: "❌ GPS qo'llab-quvvatlanmaydi", tone: "err" });
+    // Natija faqat 1 marta qayta ishlanadi + majburiy timeout.
+    // Telegram WebView (ayniqsa Desktop) geolocation callbacklarini umuman
+    // chaqirmasligi mumkin — shu sabab "Tekshirilmoqda..." da qotib qolardi.
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const onLocation = (lat: number, lon: number) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      void sendCheckin(lat, lon, action);
+    };
+    const onError = (text: string) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
       setBusy(null);
+      setToast({ text, tone: "err" });
+    };
+
+    // 12 soniyadan keyin majburan to'xtatamiz — hech qachon qotib qolmasin
+    timer = setTimeout(() => onError("⏱ GPS javob bermadi, qayta urining"), 12000);
+
+    // 1) Telegram-native GPS (WebView ichida ishonchliroq)
+    const lm = getTgLocationManager();
+    if (lm) {
+      const requestLoc = () => {
+        try {
+          lm.getLocation((loc) => {
+            if (loc && typeof loc.latitude === "number" && typeof loc.longitude === "number") {
+              onLocation(loc.latitude, loc.longitude);
+            } else {
+              onError("❌ Joylashuvga ruxsat bering (Telegram sozlamalari)");
+            }
+          });
+        } catch {
+          onError("📍 Joylashuv aniqlanmadi, qayta urining");
+        }
+      };
+      try {
+        if (lm.isInited) requestLoc();
+        else lm.init(() => requestLoc());
+      } catch {
+        onError("📍 Joylashuv aniqlanmadi, qayta urining");
+      }
       return;
     }
 
+    // 2) Fallback — brauzer geolocation
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      onError("❌ GPS qo'llab-quvvatlanmaydi");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await requestRaw("/api/checkin", {
-            method: "POST",
-            body: { lat: pos.coords.latitude, lon: pos.coords.longitude, action },
-          });
-          const d = (await res.json()) as CheckinResponse;
-          if (d.ok) {
-            const t = (d.time ?? "").slice(0, 5);
-            setToast({ text: `✅ Qayd etildi ${t}`, tone: "ok" });
-            // Tugma holatini darhol yangilaymiz — onDone() chaqirmaymiz (refetch → unmount → reason yo'qoladi)
-            if (action === "checkin") {
-              setLocalCheckedIn(true);
-              setLocalTime(prev => ({ ...prev, checkin: t }));
-            } else {
-              setLocalCheckedOut(true);
-              setLocalTime(prev => ({ ...prev, checkout: t }));
-            }
-            // Sabab maydoni — faqat hali yuborilmagan bo'lsa
-            if (action === "checkin" && d.is_late && !data.late_reason_submitted) {
-              setReason({ type: "late", minutes: Math.round((d.late_seconds ?? 0) / 60) });
-            } else if (action === "checkout" && d.is_early && !data.early_reason_submitted) {
-              setReason({ type: "early", minutes: Math.round((d.early_seconds ?? 0) / 60) });
-            }
-          } else {
-            setToast({ text: mapError(d), tone: "err" });
-          }
-        } catch {
-          setToast({ text: "❌ Server bilan ulanish yo'q", tone: "err" });
-        } finally {
-          setBusy(null);
-        }
-      },
+      (pos) => onLocation(pos.coords.latitude, pos.coords.longitude),
       (err) => {
-        setBusy(null);
-        setToast({
-          text: err.code === err.PERMISSION_DENIED
-            ? "❌ GPS ruxsatini bering"
-            : "❌ Joylashuv aniqlanmadi",
-          tone: "err",
-        });
+        if (err.code === err.PERMISSION_DENIED) onError("❌ GPS ruxsatini bering (Sozlamalar → Joylashuv)");
+        else if (err.code === err.POSITION_UNAVAILABLE) onError("📍 Joylashuv aniqlanmadi, qayta urining");
+        else if (err.code === err.TIMEOUT) onError("⏱ GPS javob bermadi, qayta urining");
+        else onError("❌ GPS xatosi");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
