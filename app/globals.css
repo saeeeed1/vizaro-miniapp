@@ -423,8 +423,15 @@ th {
     padding: 14px 12px 118px;
   }
 
+  /* Sarlavha chapda, yangilash ikonkasi O'NG TEPADA — mobilda ham qator */
   .app-header {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .app-header .brand {
+    min-width: 0;
   }
 
   .session-strip {

@@ -18,6 +18,34 @@ import { ErrorState, EmptyState } from "@/components/ui/state";
 
 // ── Shared skeleton ───────────────────────────────────────────────────────────
 
+// Yangilash — o'ng tepadagi ikonka tugma (mobil uchun 40×40 bosish maydoni)
+function RefreshButton({ onClick, spinning }: { onClick: () => void; spinning?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Yangilash"
+      title="Yangilash"
+      style={{
+        width: 40, height: 40, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        borderRadius: 10, border: "1px solid var(--border)",
+        background: "var(--card)", color: "var(--text-dim)",
+        cursor: "pointer", padding: 0,
+      }}
+    >
+      <svg
+        width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true"
+        style={spinning ? { animation: "spin 1s linear infinite" } : undefined}
+      >
+        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        <path d="M21 3v6h-6" />
+      </svg>
+    </button>
+  );
+}
+
 function SkeletonCard({ height = 120 }: { height?: number }) {
   return (
     <div className="card" style={{
@@ -172,10 +200,7 @@ function AdminDashboardScreen() {
       title="Admin Dashboard"
       subtitle={d ? `Bugun: ${d.date}` : "Yuklanmoqda..."}
       actions={
-        <button className="button secondary" style={{ fontSize: 13 }}
-          onClick={() => setRefreshKey(k => k + 1)}>
-          ↺ Yangilash
-        </button>
+        <RefreshButton onClick={() => setRefreshKey(k => k + 1)} spinning={query.loading} />
       }
     >
       {query.loading && (
@@ -673,22 +698,15 @@ function MiniTile({ label, value, color }: { label: string; value: string; color
 }
 
 function HeroTiles({ data }: { data: EmployeeDashboardData }) {
-  const holiday = data.holiday_days ?? 0;
   const earlyD  = data.early_deducted ?? 0;
   const lateMin = Math.round((data.late_seconds_total ?? 0) / 60);
 
-  // 3-plitka: dam kunlari bo'lsa u, aks holda erta ketish (bo'sh joy qolmasin)
-  const third = holiday > 0
-    ? { label: "🎉 Dam kunlari", value: `${holiday}`, color: "var(--accent)" }
-    : earlyD > 0.005
-      ? { label: "🚪 Erta ketish", value: `−$${earlyD.toFixed(2)}`, color: "var(--danger)" }
-      : { label: "✅ Vaqtida", value: `${data.on_time}`, color: "var(--accent)" };
-
+  // Uchala plitka DOIMIY. Dam kunlari "Oy holati" kartasida ko'rsatiladi.
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
       <MiniTile label="📅 Qoldi" value={`${data.workdays_remaining} kun`} />
       <MiniTile label="⏰ Kech kelish" value={`${lateMin} d`} color="var(--warning)" />
-      <MiniTile label={third.label} value={third.value} color={third.color} />
+      <MiniTile label="🚪 Erta ketish" value={`−$${earlyD.toFixed(2)}`} color="var(--warning)" />
     </div>
   );
 }
@@ -980,9 +998,7 @@ function EmployeeDashboardScreen() {
       title={query.data?.name ?? "Dashboard"}
       subtitle={query.data?.month ?? "Yuklanmoqda..."}
       actions={
-        <button className="button secondary" style={{ fontSize: 13 }} onClick={() => setRefreshKey(k => k + 1)}>
-          ↺ Yangilash
-        </button>
+        <RefreshButton onClick={() => setRefreshKey(k => k + 1)} spinning={query.loading} />
       }
     >
       {query.loading && (
@@ -998,6 +1014,12 @@ function EmployeeDashboardScreen() {
         <div className="page-body">
           <SalaryRing data={query.data} />
           <HeroTiles data={query.data} />
+          {/* Katta tugma — plitkalar ostida, oqimda (position:fixed emas) */}
+          <CheckButtons
+            data={query.data}
+            requestRaw={requestRaw}
+            onDone={() => setRefreshKey((k) => k + 1)}
+          />
           <div className="dash-salary-grid">
             <DeductionCard data={query.data} />
             <ProjectionCard data={query.data} />
@@ -1010,12 +1032,6 @@ function EmployeeDashboardScreen() {
           </div>
           <ChartSection data={query.data} />
           <DailyTable data={query.data} />
-          {/* Katta doimiy tugma — oqimda (position:fixed emas, safe-area muammosi bo'lmasin) */}
-          <CheckButtons
-            data={query.data}
-            requestRaw={requestRaw}
-            onDone={() => setRefreshKey((k) => k + 1)}
-          />
         </div>
       )}
     </AppShell>
