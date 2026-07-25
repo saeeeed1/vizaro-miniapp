@@ -187,6 +187,22 @@ function AdminDashboardScreen() {
       {query.error && <ErrorState message={query.error} />}
       {!query.loading && !query.error && d && (
         <div className="page-body">
+          {/* Dam kuni banneri — nega hech kim belgilamaganini tushuntiradi */}
+          {d.is_holiday && (
+            <div className="card" style={{
+              borderLeft: "3px solid var(--success)",
+              background: "rgba(124,231,172,0.08)",
+              padding: "12px 16px",
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "var(--success)" }}>
+                🎉 Bugun dam kuni
+              </div>
+              <div className="meta-text" style={{ fontSize: 12, marginTop: 3 }}>
+                Ishga kelish shart emas — hammaga to&apos;liq kun hisoblanadi.
+              </div>
+            </div>
+          )}
+
           {/* 4 ta bugungi karta */}
           <div className="dash-stat-grid">
             <AdminStatCard icon="✅" count={d.summary.present} label="Keldi"        color="var(--success)" />
@@ -574,6 +590,7 @@ function DeductionCard({ data }: { data: EmployeeDashboardData }) {
   const lateD   = data.late_deducted   ?? 0;
   const absentD = data.absent_deducted ?? 0;
   const earlyD  = data.early_deducted  ?? 0;
+  const holiday = data.holiday_days    ?? 0;
 
   const hasPenalties = lateD > 0.01 || absentD > 0.01 || earlyD > 0.01;
 
@@ -590,6 +607,16 @@ function DeductionCard({ data }: { data: EmployeeDashboardData }) {
           ${remaining.toFixed(2)} <span style={{ fontWeight: 400 }}>({remainingPct}%)</span>
         </span>
       </div>
+
+      {/* Dam kunlari — jarima emas, to'liq to'lanadi */}
+      {holiday > 0 && (
+        <div className="meta-text" style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+          <span>🎉 Dam kunlari:</span>
+          <span style={{ color: "var(--success)", fontWeight: 600 }}>
+            {holiday} kun
+          </span>
+        </div>
+      )}
 
       {/* Jarima qatorlari */}
       {hasPenalties && (
@@ -743,6 +770,7 @@ function formatDateShort(dateKey: string) {
   return `${parts[2]}-${UZ_MONTHS_SHORT[parseInt(parts[1], 10) - 1]}`;
 }
 function statusIcon(s: string) {
+  if (s === "holiday") return "🎉";
   if (s.includes("absent")) return "❌";
   if (s.includes("late") || s.includes("early")) return "⏰";
   if (s === "on_time" || s === "full_day") return "✅";
@@ -756,16 +784,20 @@ function formatWorked(sec: number) {
 }
 
 function DailyRow({ record, secondRate, dayRate }: { record: DailyRecord; secondRate: number; dayRate: number }) {
-  const isWaiting = record.status === "waiting";
-  const isAbsent = record.status.includes("absent");
-  const isLate = record.status.includes("late") || record.status.includes("early");
-  const isOff = record.status.includes("off") || record.status.includes("sunday");
+  // Dam kuni (bayram) barcha holatlardan ustun — to'liq to'lanadi, jarima yo'q
+  const isHoliday = !!record.is_holiday || record.status === "holiday";
+  const isWaiting = !isHoliday && record.status === "waiting";
+  const isAbsent = !isHoliday && record.status.includes("absent");
+  const isLate = !isHoliday && (record.status.includes("late") || record.status.includes("early"));
+  const isOff = !isHoliday && (record.status.includes("off") || record.status.includes("sunday"));
   let rowBg = "transparent";
-  if (isAbsent) rowBg = "rgba(249,128,119,0.07)";
+  if (isHoliday) rowBg = "rgba(124,231,172,0.07)";
+  else if (isAbsent) rowBg = "rgba(249,128,119,0.07)";
   else if (isLate) rowBg = "rgba(241,188,83,0.07)";
   else if (isOff) rowBg = "rgba(255,255,255,0.03)";
   let impact = "—";
-  if (isWaiting) impact = "—";
+  if (isHoliday) impact = `+$${dayRate.toFixed(2)}`;
+  else if (isWaiting) impact = "—";
   else if (isAbsent) impact = `−$${dayRate.toFixed(2)}`;
   else if (isLate && record.late_seconds > 0) {
     const ded = record.late_seconds * secondRate;
@@ -774,16 +806,21 @@ function DailyRow({ record, secondRate, dayRate }: { record: DailyRecord; second
   } else if (record.status === "on_time" || record.status === "full_day") {
     impact = `+$${dayRate.toFixed(2)}`;
   }
-  const impactColor = isWaiting
-    ? "var(--muted)"
+  const impactColor = isHoliday
+    ? "var(--success)"
+    : isWaiting ? "var(--muted)"
     : isAbsent ? "var(--danger)" : isLate ? "var(--warning)" : "var(--success)";
   return (
     <tr style={{ background: rowBg }}>
       <td style={{ fontWeight: 600, fontSize: 13 }}>{formatDateShort(record.date)}</td>
-      <td style={{ fontSize: 18 }} title={isWaiting ? "Kutilmoqda" : undefined}>{statusIcon(record.status)}</td>
+      <td style={{ fontSize: 18 }} title={isHoliday ? "Dam kuni" : isWaiting ? "Kutilmoqda" : undefined}>
+        {isHoliday ? "🎉" : statusIcon(record.status)}
+      </td>
       <td style={{ fontFamily: "monospace", fontSize: 13, color: "var(--muted)" }}>{record.checkin ?? "—"}</td>
       <td style={{ fontFamily: "monospace", fontSize: 13, color: "var(--muted)" }}>{record.checkout ?? "—"}</td>
-      <td style={{ fontSize: 13 }}>{isWaiting ? "—" : formatWorked(record.worked_seconds)}</td>
+      <td style={{ fontSize: 13 }}>
+        {isHoliday && !record.checkin ? "Dam kuni" : isWaiting ? "—" : formatWorked(record.worked_seconds)}
+      </td>
       <td style={{ fontSize: 13, color: impactColor, fontWeight: 600 }}>{impact}</td>
     </tr>
   );

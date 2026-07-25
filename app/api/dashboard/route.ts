@@ -48,7 +48,7 @@ export async function GET(request: Request) {
             name: "",
             month,
             workdays_total: 0, workdays_passed: 0, workdays_remaining: 0,
-            on_time: 0, late_days: 0, absent_days: 0, late_seconds_total: 0,
+            on_time: 0, late_days: 0, absent_days: 0, holiday_days: 0, late_seconds_total: 0,
             salary_base: 500, salary_earned: 0, salary_deducted: 0, salary_projected: 0,
             late_deducted: 0, absent_deducted: 0, early_deducted: 0,
             day_rate: 0, second_rate: 0,

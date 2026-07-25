@@ -311,6 +311,8 @@ export interface WeekChartPoint {
 
 export interface TodayDashboardData {
   date: string;
+  /** Bugun dam kuni (bayram) e'lon qilinganmi. */
+  is_holiday?: boolean;
   summary: TodaySummary;
   employees: TodayEmployee[];
   week_chart: WeekChartPoint[];
@@ -327,6 +329,8 @@ export interface BotUserInfo {
 export interface DailyRecord {
   date: string;
   status: string;
+  /** Dam kuni (bayram) — to'liq to'lanadi, jarima yo'q. Status bilan birga keladi. */
+  is_holiday?: boolean;
   checkin: string | null;
   checkout: string | null;
   worked_seconds: number;
@@ -355,6 +359,8 @@ export interface EmployeeDashboardData {
   on_time: number;
   late_days: number;
   absent_days: number;
+  /** To'langan dam kunlari (bayram) soni. */
+  holiday_days?: number;
   late_seconds_total: number;
   salary_base: number;
   salary_earned: number;
