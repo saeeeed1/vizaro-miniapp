@@ -14,6 +14,7 @@ import type {
 import { useApiData } from "@/lib/client/use-api";
 import { useMiniApp } from "@/components/providers/miniapp-provider";
 import { AppShell } from "@/components/layout/app-shell";
+import { AdminExcelCard } from "@/components/screens/admin-excel-card";
 import { ErrorState, EmptyState } from "@/components/ui/state";
 
 // ── Shared skeleton ───────────────────────────────────────────────────────────
@@ -255,6 +256,10 @@ function AdminDashboardScreen() {
 
           {/* 7 kunlik grafik */}
           {d.week_chart.length > 0 && <WeekChart data={d.week_chart} />}
+
+          {/* Hamma xodim bitta Excel'da — oy yakunida ishlatiladi, shuning
+              uchun kunlik ko'rsatkichlardan keyin turadi */}
+          <AdminExcelCard />
         </div>
       )}
       {!query.loading && !query.error && !d && <EmptyState label="Ma'lumot topilmadi." />}
