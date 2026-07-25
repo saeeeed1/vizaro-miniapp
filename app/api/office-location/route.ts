@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
+import { botHeaders } from "@/lib/bot-api";
+
+export async function GET(request: Request) {
   const botApiUrl = process.env.BOT_API_URL;
   if (botApiUrl) {
     try {
       const res = await fetch(`${botApiUrl.replace(/\/$/, "")}/api/office-location`, {
         cache: "no-store",
+        headers: botHeaders(request.headers),
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {

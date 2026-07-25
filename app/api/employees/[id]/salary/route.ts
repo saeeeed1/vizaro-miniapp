@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveSession } from "@/lib/auth";
+import { botHeaders } from "@/lib/bot-api";
 
 export async function PATCH(
   request: Request,
@@ -25,7 +26,7 @@ export async function PATCH(
         `${botApiUrl.replace(/\/$/, "")}/api/employees/${id}/salary`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: botHeaders(request.headers, { "Content-Type": "application/json" }),
           body: JSON.stringify({ monthly_salary: body.monthly_salary }),
           signal: AbortSignal.timeout(5000),
         }

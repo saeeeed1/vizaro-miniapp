@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveSession } from "@/lib/auth";
+import { botHeaders } from "@/lib/bot-api";
 import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 
 function extractTelegramUserId(headers: Headers): string | null {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   try {
     const res = await fetch(`${botApiUrl.replace(/\/$/, "")}/api/reason`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: botHeaders(request.headers, { "Content-Type": "application/json" }),
       body: JSON.stringify({
         user_id: telegramId,
         date: body.date,

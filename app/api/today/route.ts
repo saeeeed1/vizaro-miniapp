@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveSession } from "@/lib/auth";
+import { botHeaders } from "@/lib/bot-api";
 import { fail } from "@/lib/api-response";
 
 export async function GET(request: Request) {
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
     if (botApiUrl) {
       const res = await fetch(
         `${botApiUrl.replace(/\/$/, "")}/api/today`,
-        { cache: "no-store", signal: AbortSignal.timeout(8000) }
+        { cache: "no-store", headers: botHeaders(request.headers), signal: AbortSignal.timeout(8000) }
       );
       if (res.ok) return NextResponse.json(await res.json() as unknown);
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveSession } from "@/lib/auth";
+import { botHeaders } from "@/lib/bot-api";
 import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 
 function extractTelegramUserId(headers: Headers): string | null {
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
 
     const res = await fetch(
       `${botApiUrl.replace(/\/$/, "")}/api/my-months?user_id=${telegramId}`,
-      { cache: "no-store", signal: AbortSignal.timeout(8000) }
+      { cache: "no-store", headers: botHeaders(request.headers), signal: AbortSignal.timeout(8000) }
     );
     if (!res.ok) return NextResponse.json({ months: [] });
     return NextResponse.json(await res.json() as unknown);

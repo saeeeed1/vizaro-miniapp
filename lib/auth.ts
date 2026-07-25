@@ -1,3 +1,4 @@
+import { botHeaders } from "@/lib/bot-api";
 import { DEMO_USER_HEADER, IS_DEMO_MODE, TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 import { getStore } from "@/lib/store";
 import { validateTelegramInitData } from "@/lib/telegram";
@@ -49,12 +50,13 @@ async function fetchBotSession(
   botApiUrl: string,
   telegramId: string,
   fallback: { fullName: string; username: string | null },
-  config: SessionPayload["config"]
+  config: SessionPayload["config"],
+  incomingHeaders: Headers
 ): Promise<SessionPayload> {
   try {
     const res = await fetch(
       `${botApiUrl.replace(/\/$/, "")}/api/me?user_id=${telegramId}`,
-      { cache: "no-store", signal: AbortSignal.timeout(5000) }
+      { cache: "no-store", headers: botHeaders(incomingHeaders), signal: AbortSignal.timeout(5000) }
     );
     if (res.ok) {
       const data = await res.json() as {
@@ -130,7 +132,7 @@ export async function resolveSession(headers: Headers): Promise<SessionPayload> 
     const validated = validateTelegramInitData(initData, botToken);
     if (!validated) throw new AuthError("Telegram init data tasdiqlanmadi.");
 
-    return fetchBotSession(botApiUrl, rawUser.id, rawUser, store.salaryConfig);
+    return fetchBotSession(botApiUrl, rawUser.id, rawUser, store.salaryConfig, headers);
   }
 
   // ── Store rejimi (demo fallback yoki botApiUrl yo'q) ────────────────────
