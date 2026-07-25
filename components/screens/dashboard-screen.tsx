@@ -302,6 +302,21 @@ function getTgLocationManager(): TgLocationManager | null {
   return tg?.WebApp?.LocationManager ?? null;
 }
 
+function GpsIcon({ spinning }: { spinning?: boolean }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+      style={spinning ? { animation: "spin 1.1s linear infinite" } : undefined}
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <circle cx="12" cy="12" r="8" opacity="0.45" />
+    </svg>
+  );
+}
+
 function CheckButtons({
   data, requestRaw, onDone,
 }: { data: EmployeeDashboardData; requestRaw: RequestRaw; onDone: () => void }) {
@@ -467,48 +482,60 @@ function CheckButtons({
     }
   }
 
-  const inLabel = busy === "checkin"
-    ? "📍 Tekshirilmoqda..."
-    : checkedIn ? `✅ ${checkinTime ?? ""}` : "✅ Keldim";
-  const outLabel = busy === "checkout"
-    ? "📍 Tekshirilmoqda..."
-    : checkedOut ? `🚪 ${checkoutTime ?? ""}` : "🚪 Ketdim";
+  // Yagona kontekstli tugma: kelmagan → Keldim · kelgan → Ketdim · ikkalasi → tugallandi
+  const nextAction: "checkin" | "checkout" | null =
+    !checkedIn ? "checkin" : !checkedOut ? "checkout" : null;
+  const isBusy = busy !== null;
+  const done = nextAction === null;
 
-  const bigBtn = (active: boolean, disabled: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: "18px 0",
-    borderRadius: 16,
+  const btnLabel = isBusy
+    ? "Aniqlanmoqda..."
+    : nextAction === "checkin" ? "Keldim"
+    : nextAction === "checkout" ? "Ketdim"
+    : `Kun yakunlandi · ${checkinTime ?? ""}–${checkoutTime ?? ""}`;
+
+  const btnStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "13px 0",
+    borderRadius: 10,
     border: "none",
-    fontSize: 17,
-    fontWeight: 800,
-    color: disabled ? "var(--muted)" : "#04140c",
-    background: disabled
-      ? "rgba(255,255,255,0.06)"
-      : active
-        ? "linear-gradient(135deg,#7ce7ac,#4fd18b)"
-        : "rgba(255,255,255,0.06)",
-    cursor: disabled ? "default" : "pointer",
-    transition: "transform 0.1s, opacity 0.2s",
-  });
+    fontSize: 14,
+    fontWeight: 500,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    color: done || isBusy
+      ? "var(--text-dim)"
+      : nextAction === "checkin" ? "#0d0d0d" : "var(--text)",
+    background: done || isBusy
+      ? "var(--card-2)"
+      : nextAction === "checkin" ? "var(--accent)" : "var(--card-2)",
+    cursor: done || isBusy ? "default" : "pointer",
+    transition: "background 0.2s, opacity 0.2s",
+  };
 
   return (
     <div className="card dash-anim" style={{ animationDelay: "0ms" }}>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button
-          style={bigBtn(true, checkedIn || busy !== null)}
-          disabled={checkedIn || busy !== null}
-          onClick={() => handleCheck("checkin")}
-        >
-          {inLabel}
-        </button>
-        <button
-          style={bigBtn(checkedIn, checkedOut || !checkedIn || busy !== null)}
-          disabled={checkedOut || !checkedIn || busy !== null}
-          onClick={() => handleCheck("checkout")}
-        >
-          {outLabel}
-        </button>
-      </div>
+      {/* Kelgan/ketgan vaqtlar — tugma ustida qisqa satr */}
+      {(checkinTime || checkoutTime) && (
+        <div style={{
+          display: "flex", justifyContent: "center", gap: 16,
+          fontSize: 12, color: "var(--text-dim)", marginBottom: 10,
+        }}>
+          {checkinTime && <span>Keldi: <b style={{ color: "var(--text)" }}>{checkinTime}</b></span>}
+          {checkoutTime && <span>Ketdi: <b style={{ color: "var(--text)" }}>{checkoutTime}</b></span>}
+        </div>
+      )}
+
+      <button
+        style={btnStyle}
+        disabled={done || isBusy}
+        onClick={() => nextAction && handleCheck(nextAction)}
+      >
+        <GpsIcon spinning={isBusy} />
+        {btnLabel}
+      </button>
 
       {toast && (
         <div
@@ -569,14 +596,99 @@ function CheckButtons({
   );
 }
 
-function EarnedCard({ data }: { data: EmployeeDashboardData }) {
+// ── Halqa hero: oylik summa + oy bajarilishi ───────────────────────────────────
+
+function SalaryRing({ data }: { data: EmployeeDashboardData }) {
+  const earned = Number.isFinite(data.salary_earned) ? data.salary_earned : 0;
+  const base   = Number.isFinite(data.salary_base) && data.salary_base > 0 ? data.salary_base : 0;
+  const pct    = base > 0 ? Math.min(100, Math.max(0, (earned / base) * 100)) : 0;
+
+  const SIZE = 140, STROKE = 9;
+  const r = (SIZE - STROKE) / 2;
+  const circumference = 2 * Math.PI * r;
+  const dash = (pct / 100) * circumference;
+
   return (
-    <div className="card dash-anim" style={{ animationDelay: "0ms" }}>
-      <div className="meta-text">💰 Hozirgi oylik</div>
-      <div style={{ fontSize: 32, fontWeight: 800, margin: "8px 0 2px", color: "var(--success)" }}>
-        ${data.salary_earned.toFixed(2)}
+    <div className="card dash-anim" style={{
+      animationDelay: "0ms",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "22px 18px 20px",
+    }}>
+      <div
+        role="img"
+        aria-label={`Oylik ${earned.toFixed(2)} dollar, oy ${Math.round(pct)} foiz bajarildi`}
+        style={{ position: "relative", width: SIZE, height: SIZE }}
+      >
+        <svg width={SIZE} height={SIZE} style={{ display: "block", transform: "rotate(-90deg)" }}>
+          <circle
+            cx={SIZE / 2} cy={SIZE / 2} r={r}
+            fill="none" stroke="var(--border)" strokeWidth={STROKE}
+          />
+          <circle
+            cx={SIZE / 2} cy={SIZE / 2} r={r}
+            fill="none" stroke="var(--accent)" strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circumference}`}
+            style={{ transition: "stroke-dasharray 0.9s ease" }}
+          />
+        </svg>
+        {/* Markaz: summa + baza */}
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 2,
+        }}>
+          <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em" }}>
+            ${earned.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+            ${base.toFixed(0)} dan
+          </div>
+        </div>
       </div>
-      <ProgressBar value={data.salary_earned} max={data.salary_base} />
+      <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-dim)" }}>
+        Oy {Math.round(pct)}% bajarildi
+      </div>
+    </div>
+  );
+}
+
+// ── Halqa ostidagi 3 plitka ────────────────────────────────────────────────────
+
+function MiniTile({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div style={{
+      background: "var(--card)", border: "1px solid var(--border)",
+      borderRadius: 10, padding: "10px 8px", textAlign: "center", minWidth: 0,
+    }}>
+      <div style={{
+        fontSize: 10, color: "var(--text-dim)", marginBottom: 4,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: color ?? "var(--text)" }}>{value}</div>
+    </div>
+  );
+}
+
+function HeroTiles({ data }: { data: EmployeeDashboardData }) {
+  const holiday = data.holiday_days ?? 0;
+  const earlyD  = data.early_deducted ?? 0;
+  const lateMin = Math.round((data.late_seconds_total ?? 0) / 60);
+
+  // 3-plitka: dam kunlari bo'lsa u, aks holda erta ketish (bo'sh joy qolmasin)
+  const third = holiday > 0
+    ? { label: "🎉 Dam kunlari", value: `${holiday}`, color: "var(--accent)" }
+    : earlyD > 0.005
+      ? { label: "🚪 Erta ketish", value: `−$${earlyD.toFixed(2)}`, color: "var(--danger)" }
+      : { label: "✅ Vaqtida", value: `${data.on_time}`, color: "var(--accent)" };
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+      <MiniTile label="📅 Qoldi" value={`${data.workdays_remaining} kun`} />
+      <MiniTile label="⏰ Kech kelish" value={`${lateMin} d`} color="var(--warning)" />
+      <MiniTile label={third.label} value={third.value} color={third.color} />
     </div>
   );
 }
@@ -884,13 +996,9 @@ function EmployeeDashboardScreen() {
       {!query.loading && !query.error && !query.data && <EmptyState label="Ma'lumot topilmadi." />}
       {!query.loading && !query.error && query.data && (
         <div className="page-body">
-          <CheckButtons
-            data={query.data}
-            requestRaw={requestRaw}
-            onDone={() => setRefreshKey((k) => k + 1)}
-          />
+          <SalaryRing data={query.data} />
+          <HeroTiles data={query.data} />
           <div className="dash-salary-grid">
-            <EarnedCard data={query.data} />
             <DeductionCard data={query.data} />
             <ProjectionCard data={query.data} />
           </div>
@@ -902,6 +1010,12 @@ function EmployeeDashboardScreen() {
           </div>
           <ChartSection data={query.data} />
           <DailyTable data={query.data} />
+          {/* Katta doimiy tugma — oqimda (position:fixed emas, safe-area muammosi bo'lmasin) */}
+          <CheckButtons
+            data={query.data}
+            requestRaw={requestRaw}
+            onDone={() => setRefreshKey((k) => k + 1)}
+          />
         </div>
       )}
     </AppShell>
