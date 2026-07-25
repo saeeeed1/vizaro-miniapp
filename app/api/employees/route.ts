@@ -24,7 +24,11 @@ export async function GET(request: Request) {
 
   if (botApiUrl) {
     try {
-      await resolveSession(request.headers);
+      // Butun vedomost (barcha xodim ismi, maoshi, sof to'lovi) — faqat ADMIN
+      const session = await resolveSession(request.headers);
+      if (session.user.role !== "ADMIN") {
+        return NextResponse.json({ error: "Ruxsat yo'q." }, { status: 403 });
+      }
       const realId = extractTelegramUserId(request.headers);
 
       const res = await fetch(

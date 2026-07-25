@@ -9,7 +9,15 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    resolveSession(request.headers);
+    // ⚠️ `await` SHART: awaitsiz chaqiruv rejected Promise qaytaradi,
+    // catch uni ushlamaydi va tekshiruv jimgina o'tkazib yuboriladi.
+    const session = await resolveSession(request.headers);
+
+    // Maosh o'zgartirish — faqat ADMIN
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Ruxsat yo'q." }, { status: 403 });
+    }
+
     const body = await request.json() as { monthly_salary: number };
 
     if (botApiUrl) {

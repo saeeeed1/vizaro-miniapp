@@ -21,7 +21,6 @@ function extractTelegramUserId(headers: Headers): string | null {
 
 export async function GET(request: Request) {
   const botApiUrl = process.env.BOT_API_URL;
-  const { searchParams } = new URL(request.url);
 
   if (botApiUrl) {
     try {
@@ -30,7 +29,10 @@ export async function GET(request: Request) {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-      const isAdmin = searchParams.get("admin") === "1" || session.user.role === "ADMIN";
+      // Admin huquqi FAQAT server tomonda aniqlangan roldan olinadi.
+      // (Ilgari `?admin=1` query parametri ham qabul qilinardi — bu istalgan
+      // xodimga butun vedomostni ochib berardi.)
+      const isAdmin = session.user.role === "ADMIN";
       const qp = new URLSearchParams({ month });
       // Non-admin: faqat o'z ma'lumotlari
       if (!isAdmin && realId) qp.set("user_id", realId);
