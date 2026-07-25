@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { resolveSession } from "@/lib/auth";
+import { AuthError, resolveSession } from "@/lib/auth";
 import { botHeaders } from "@/lib/bot-api";
 import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 
@@ -53,7 +53,12 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(120000),
     });
     return NextResponse.json(await res.json() as unknown, { status: res.status });
-  } catch {
+  } catch (err) {
+    // ⚠️ Sessiya rad etilishi "network" bo'lib ko'rinmasin: aks holda token
+    // yo'qolgani ham vaqtincha tarmoq uzilishi bilan bir xil ko'rinadi.
+    if (err instanceof AuthError) {
+      return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: err.status });
+    }
     return NextResponse.json({ ok: false, reason: "network" }, { status: 502 });
   }
 }

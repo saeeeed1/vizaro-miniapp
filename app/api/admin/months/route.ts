@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { resolveSession } from "@/lib/auth";
+import { AuthError, resolveSession } from "@/lib/auth";
 import { botHeaders } from "@/lib/bot-api";
 import { TELEGRAM_INIT_DATA_HEADER } from "@/lib/config";
 
@@ -36,7 +36,12 @@ export async function GET(request: Request) {
     );
     if (!res.ok) return NextResponse.json({ months: [] }, { status: res.status });
     return NextResponse.json(await res.json() as unknown);
-  } catch {
+  } catch (err) {
+    // Sessiya rad etilishi "bo'sh ro'yxat" bo'lib ko'rinmasin — aks holda
+    // sozlama nosozligi ham, ruxsatsizlik ham "ma'lumot yo'q"ga aylanadi.
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: "Sessiya topilmadi." }, { status: err.status });
+    }
     return NextResponse.json({ months: [] });
   }
 }
