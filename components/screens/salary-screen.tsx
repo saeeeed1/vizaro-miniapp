@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/state";
 import { SummaryGrid } from "@/components/screens/shared";
+import { ExcelCard } from "@/components/screens/excel-card";
 
 export function SalaryScreen() {
   const { request, session } = useMiniApp();
@@ -19,6 +20,7 @@ export function SalaryScreen() {
       subtitle="Worked hours, overtime, penalties va net salary breakdown."
       actions={<Button variant="ghost">Current Month</Button>}
     >
+      <ExcelCard />
       {query.loading ? <LoadingState /> : null}
       {query.error ? <ErrorState message={query.error} /> : null}
       {!query.loading && !query.error && query.data ? (
