@@ -294,6 +294,8 @@ interface CheckinResponse {
   is_late?: boolean;
   early_seconds?: number;
   is_early?: boolean;
+  remaining_seconds?: number;
+  min_work_minutes?: number;
 }
 
 type RequestRaw = (
@@ -380,6 +382,8 @@ function CheckButtons({
         if (action === "checkin") {
           setLocalCheckedIn(true);
           setLocalTime((prev) => ({ ...prev, checkin: t }));
+          // Ketdim qulfi darhol boshlanadi (dashboard bu yerda qayta yuklanmaydi)
+          setRemaining((data.min_work_minutes ?? 10) * 60);
         } else {
           setLocalCheckedOut(true);
           setLocalTime((prev) => ({ ...prev, checkout: t }));
@@ -479,6 +483,7 @@ function CheckButtons({
       case "no_checkin":      return "⚠️ Avval Keldim ni bosing";
       case "not_workday":     return "🚫 Bugun dam kuni";
       case "marked_absent":   return "⚠️ Bugun kelmaysiz deb belgilangan";
+      case "too_soon":        return `⏳ Ketdim ${Math.ceil((d.remaining_seconds ?? 0) / 60)} daqiqadan keyin ochiladi`;
       default:                return "❌ Xatolik yuz berdi";
     }
   }
@@ -513,8 +518,28 @@ function CheckButtons({
   const isBusy = busy !== null;
   const done = nextAction === null;
 
+  // Ketdim ochilishiga qolgan vaqt — serverdan keladi, keyin har soniyada kamayadi
+  const [remaining, setRemaining] = useState(data.checkout_remaining_seconds ?? 0);
+  useEffect(() => {
+    setRemaining(data.checkout_remaining_seconds ?? 0);
+  }, [data.checkout_remaining_seconds]);
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const t = setInterval(() => setRemaining((s) => (s > 1 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);          // unmount/qayta hisobda tozalanadi
+  }, [remaining > 0]);
+
+  // Keldim bosilgan zahoti sanoq boshlanadi (server javobini kutmasdan)
+  const locked = nextAction === "checkout" && remaining > 0;
+
+  function fmtLeft(sec: number) {
+    if (sec >= 60) return `${Math.ceil(sec / 60)} daqiqadan keyin`;
+    return `${sec} soniyadan keyin`;
+  }
+
   const btnLabel = isBusy
     ? "Aniqlanmoqda..."
+    : locked ? `Ketdim — ${fmtLeft(remaining)}`
     : nextAction === "checkin" ? "Keldim"
     : nextAction === "checkout" ? "Ketdim"
     : `Kun yakunlandi · ${checkinTime ?? ""}–${checkoutTime ?? ""}`;
@@ -532,14 +557,14 @@ function CheckButtons({
     gap: 8,
     // Uch holat: Keldim (yashil) · Ketdim (sariq) · Kun yakunlandi (o'chiq).
     // Aniqlanmoqda — amal rangini saqlaydi (sariq fonda ham matn o'qiladi).
-    color: done
+    color: done || locked
       ? "#6a6a6a"
       : nextAction === "checkin" ? "var(--accent-text)" : "var(--accent-leave-text)",
-    background: done
+    background: done || locked
       ? "var(--card-2)"
       : nextAction === "checkin" ? "var(--accent)" : "var(--accent-leave)",
     opacity: isBusy ? 0.72 : 1,
-    cursor: done || isBusy ? "default" : "pointer",
+    cursor: done || locked || isBusy ? "default" : "pointer",
     transition: "background 0.2s, opacity 0.2s",
   };
 
@@ -558,8 +583,8 @@ function CheckButtons({
 
       <button
         style={btnStyle}
-        disabled={done || isBusy}
-        onClick={() => nextAction && handleCheck(nextAction)}
+        disabled={done || locked || isBusy}
+        onClick={() => nextAction && !locked && handleCheck(nextAction)}
       >
         <GpsIcon spinning={isBusy} />
         {btnLabel}

@@ -361,6 +361,10 @@ export interface EmployeeDashboardData {
   absent_days: number;
   /** To'langan dam kunlari (bayram) soni. */
   holiday_days?: number;
+  /** Ketdim tugmasi ochilishiga qolgan soniya (0 = ruxsat etilgan). */
+  checkout_remaining_seconds?: number;
+  /** Keldim–Ketdim orasidagi minimal vaqt (daqiqa). */
+  min_work_minutes?: number;
   late_seconds_total: number;
   salary_base: number;
   salary_earned: number;
