@@ -118,11 +118,17 @@ export async function resolveSession(headers: Headers): Promise<SessionPayload> 
     const rawUser = extractRawTelegramUser(initData);
     if (!rawUser) throw new AuthError("Telegram foydalanuvchi ma'lumotlari noto'g'ri.");
 
-    // Imzo tekshiruvi (token mavjud bo'lsa)
-    if (botToken) {
-      const validated = validateTelegramInitData(initData, botToken);
-      if (!validated) throw new AuthError("Telegram init data tasdiqlanmadi.");
+    // Imzo tekshiruvi — token SHART (fail-closed). Token bo'lmasa initData
+    // imzosini tasdiqlab bo'lmaydi, shuning uchun so'rov rad etiladi — aks
+    // holda istalgan odam initData yasab kira olardi.
+    if (!botToken) {
+      console.error(
+        "TELEGRAM_BOT_TOKEN o'rnatilmagan — so'rovlar rad etilmoqda (initData imzosini tasdiqlab bo'lmaydi).",
+      );
+      throw new AuthError("Konfiguratsiya xatosi.");
     }
+    const validated = validateTelegramInitData(initData, botToken);
+    if (!validated) throw new AuthError("Telegram init data tasdiqlanmadi.");
 
     return fetchBotSession(botApiUrl, rawUser.id, rawUser, store.salaryConfig);
   }
