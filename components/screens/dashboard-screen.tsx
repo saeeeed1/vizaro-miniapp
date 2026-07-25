@@ -530,12 +530,15 @@ function CheckButtons({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    color: done || isBusy
-      ? "var(--text-dim)"
-      : nextAction === "checkin" ? "#0d0d0d" : "var(--text)",
-    background: done || isBusy
+    // Uch holat: Keldim (yashil) · Ketdim (sariq) · Kun yakunlandi (o'chiq).
+    // Aniqlanmoqda — amal rangini saqlaydi (sariq fonda ham matn o'qiladi).
+    color: done
+      ? "#6a6a6a"
+      : nextAction === "checkin" ? "var(--accent-text)" : "var(--accent-leave-text)",
+    background: done
       ? "var(--card-2)"
-      : nextAction === "checkin" ? "var(--accent)" : "var(--card-2)",
+      : nextAction === "checkin" ? "var(--accent)" : "var(--accent-leave)",
+    opacity: isBusy ? 0.72 : 1,
     cursor: done || isBusy ? "default" : "pointer",
     transition: "background 0.2s, opacity 0.2s",
   };

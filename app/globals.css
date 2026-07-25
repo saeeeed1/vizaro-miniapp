@@ -12,6 +12,9 @@
   --text-dim: #8a8a8a;
   --muted: #8a8a8a;
   --accent: #00c07a;
+  --accent-text: #04342c;        /* accent fonda o'qiladigan to'q matn */
+  --accent-leave: #f1bc53;       /* "Ketdim" — sariq/amber */
+  --accent-leave-text: #412402;  /* sariq fonda o'qiladigan to'q qahrabo */
   --primary: #00c07a;
   --primary-soft: rgba(0, 192, 122, 0.14);
   --success: #00c07a;
